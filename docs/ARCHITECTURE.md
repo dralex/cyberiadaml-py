@@ -63,28 +63,29 @@ repair fired or the metadata has `lapkiVisual`.
 ## The document model
 
 ```
- Document --- format, keys[], meta, findings[]
+ Document --- format, label, keys[], meta_params[], findings[]
     |
     +-- StateMachine* --- id, name, formal_name, geometry, params, extensions
            |
-           +-- nodes: State | SubmachineState | Vertex | Comment           (top region)
-           |     State --- name, actions, blocks[], geometry, color, collapsed
-           |       +-- Region* --- id, name, formal_name, geometry, nodes
+           +-- children: State | SubmachineState | Vertex | Comment        (top region)
+           |     State --- name, data, blocks[], geometry, color, collapsed
+           |       +-- Region* --- id, name, formal_name, geometry, children
            |     SubmachineState --- ref, points region (EntryPoint/ExitPoint vertices)
            |     Vertex --- kind, name, geometry, color
            |     Comment --- kind (formal|informal), name, body, markup, geometry, color
-           +-- transitions: Transition* --- source, target, actions, blocks[], polyline,
+           +-- transitions: Transition* --- source, target, data, blocks[], polyline,
            |                                source/target point, label geometry, color
            +-- links: CommentLink* --- source, target (node or edge), pivot, chunk
 ```
 
 - every element keeps its parent, its source line and its `extensions` — the `data` items of
   declared non-standard keys, in document order, written back as they came;
-- `actions` keeps the behaviour text verbatim, `blocks` is its parse (§6.8: triggers, guards,
+- `data` keeps the behaviour text verbatim, `blocks` is its parse (§6.8: triggers, guards,
   `propagate`/`block`/`defer`, `entry`/`exit`/`do`, `else`); text that does not parse keeps its
   findings and an empty `blocks`;
-- `meta` is the ordered parameter list of the document metadata; `StateMachine.params` holds the
-  per-machine parameters of the Lapki dialect (D-1), never written by the standard writer;
+- `meta_params` is the ordered parameter list of the document metadata; `StateMachine.params`
+  holds the per-machine parameters of the Lapki dialect (D-1), never written by the standard
+  writer;
 - geometry is `Point` or `Rect` of floats, exactly as read; nothing is invented.
 
 The model covers the whole standard from 1.5 on — it comes with the validator port. The stages of

@@ -1,0 +1,1 @@
+"""The Lapki dialect corpus."""

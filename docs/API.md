@@ -67,7 +67,7 @@ target points of transitions, `markup` of comments, `formal_name` of machines.
   document. Strict: no dialect repairs, any ERROR finding raises. Permissive: dialect repairs,
   only fatal findings raise. Raises `core.CGMLError`.
 * `core.write(document: core.Document) -> str` - writes a standard document; raises
-  `core.CGMLError` when the result breaks a MUST rule.
+  `core.CGMLError` when the result breaks a MUST rule (from the writer step of 1.5).
 * `core.dump(document: core.Document) -> str` - the canonical dump of the validator
   specification §7.
 
@@ -85,30 +85,34 @@ Constants:
 
 ### Model
 
-Dataclasses; every element has `id`, `parent`, `line` and `extensions: list[Extension]`.
+Dataclasses with the field names of the reference validator (`cgmlval`), so the two stay
+comparable. Every element has `id`, `elem` (its source element), `parent`, `line` and
+`extensions: list[Extension]`.
 
-* `Document` - `format`, `keys: list[KeyDecl]`, `meta: list[Param]`, `meta_id`,
-  `machines: list[StateMachine]`, `findings: list[Finding]`; `param(name)` returns a metadata
-  value or `None`;
-* `StateMachine` - `name`, `formal_name`, `geometry: Rect | None`, `nodes`, `transitions`,
-  `links`, `params: list[Param]` (dialect D-1 only);
-* `Region` - `name`, `formal_name`, `geometry`, `marker` (`dRegion` present), `nodes`;
-* `State` - `name`, `formal_name`, `actions: str | None`, `blocks: list[Block]`, `geometry`,
-  `color`, `collapsed`, `regions: list[Region]`;
-* `SubmachineState` - `name`, `formal_name`, `ref`, `geometry`, `color`,
-  `points: Region | None`;
-* `Vertex` - `kind` (the `dVertex` value), `name`, `geometry`, `color`;
-* `Comment` - `kind` (`formal` | `informal`), `name`, `body`, `markup`, `geometry`, `color`;
-  `component()` returns `(id, type, params)` for a `CGML_COMPONENT <id>` comment or `None`;
-* `Transition` - `source`, `target`, `actions`, `blocks`, `polyline: list[Point]`,
-  `source_point`, `target_point`, `label_geometry: Point | Rect | None`, `color`;
+* `Document` - `format` (the `gFormat` value after the repairs), `label` (`FORMAT_STANDARD` |
+  `FORMAT_LAPKI`), `keys: list[KeyDecl]`, `meta_comment`, `meta_id`, `meta_params:
+  list[Param]`, `meta_errors`, `geometry_mode`, `machines: list[StateMachine]`,
+  `findings: list[Finding]`, `extension_graphs` (the dialect D-9 graphs); `param(name)`,
+  `transition_order()`, `event_propagation()`, `markup_language()`;
+* `StateMachine` - `name`, `formal_name`, `geometry: Rect | None`, `marker`, `children`,
+  `transitions`, `links`, `params: list[Param]` (dialect D-1 only);
+* `Region` - `name`, `formal_name`, `geometry`, `children`;
+* `Node` - `name`, `formal_name`, `geometry`, `color`, the base of:
+  * `State` - `data` (the behaviour text verbatim), `blocks: list[Block]`, `block_errors`,
+    `regions: list[Region]`, `collapsed`;
+  * `SubmachineState` - `ref`, `regions` (the one holding the entry/exit points);
+  * `Vertex` - `kind` (the `dVertex` value);
+  * `Comment` - `kind` (`formal` | `informal`), `body`, `markup`; `component()` returns
+    `(id, type, params)` for a `CGML_COMPONENT <id>` comment or `None`;
+* `Transition` - `source`, `target`, `data`, `blocks`, `block_errors`, `polyline:
+  list[Point]`, `source_point`, `target_point`, `label_geometry: Point | Rect | None`, `color`;
 * `CommentLink` - `source`, `target` (node or edge id), `pivot`, `chunk`, `polyline`,
   `source_point`, `target_point`;
-* `Block` - `kind` (`entry` | `exit` | `do` | `event`), `event`, `guard`, `param`
-  (`propagate` | `block` | `defer`), `behaviour`;
-* `Param` - `name`, `value`;  `KeyDecl` - `id`, `for_kind`, `attr_name`, `attr_type`;
-* `Extension` - `key`, `text`, `children` (the raw child elements);
+* `Block` - `kind` (`entry` | `exit` | `do` | `event`), `trigger`, `param` (`propagate` |
+  `block` | `defer`), `guard`, `behaviour` (the lines), `verbatim`;
+* `Param` - `name`, `value`, `line`; `KeyDecl` - `id`, `for_kind`, `attr_name`, `attr_type`;
+* `Extension` - `key`, `text`, `elem`;
 * `Point(x, y)`, `Rect(x, y, width, height)` - floats.
 
-`nodes` keeps the document order. `write` takes the structure from the containment, not from the
-`parent` fields, which `read` fills for navigation.
+`children` keeps the document order. `write` takes the structure from the containment, not from
+the `parent` fields, which `read` fills for navigation.
