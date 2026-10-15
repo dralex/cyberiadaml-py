@@ -40,6 +40,10 @@ class CGMLBaseVertex:
     data: Optional[str] = None
     position: Optional[Point | Rectangle] = None
     parent: Optional[str] = None
+    formal_name: Optional[str] = None
+    color: Optional[str] = None
+    region: Optional[str] = None
+    unknown_datanodes: List[CGMLDataNode] = Field(default_factory=list)
 
 
 @dataclass
@@ -86,6 +90,27 @@ class CGMLState:
     parent: Optional[str] = None
     bounds: Optional[Rectangle | Point] = None
     color: Optional[str] = None
+    submachine: Optional[str] = None
+    collapsed: bool = False
+    formal_name: Optional[str] = None
+    region: Optional[str] = None
+    regions: List['CGMLRegion'] = Field(default_factory=list)
+
+
+@dataclass
+class CGMLRegion:
+    """
+    A region of a state: its child graph.
+
+    id: the graph id; name, formal_name: dName, dFormalName;
+    bounds: dGeometry; unknown_datanodes: the extension data.
+    """
+
+    id: str
+    name: Optional[str] = None
+    formal_name: Optional[str] = None
+    bounds: Optional[Rectangle] = None
+    unknown_datanodes: List[CGMLDataNode] = Field(default_factory=list)
 
 
 @dataclass
@@ -101,6 +126,7 @@ class CGMLComponent:
     id: str
     type: str
     parameters: Dict[str, str]
+    unknown_datanodes: List[CGMLDataNode] = Field(default_factory=list)
 
 
 @dataclass
@@ -140,6 +166,20 @@ class CGMLDeepHistory(CGMLBaseVertex):
 
 
 @dataclass
+class CGMLEntryPoint(CGMLBaseVertex):
+    """An entry point of a state or a submachine state (dVertex entryPoint)."""
+
+    ...
+
+
+@dataclass
+class CGMLExitPoint(CGMLBaseVertex):
+    """An exit point of a state or a submachine state (dVertex exitPoint)."""
+
+    ...
+
+
+@dataclass
 class CGMLChoice(CGMLBaseVertex):
     """
     Data class with information about choice node (pseudo node).
@@ -172,8 +212,30 @@ class CGMLTransition:
     unknown_datanodes: List[CGMLDataNode]
     color: Optional[str] = None
     position: List[Point] = Field(default_factory=list)
-    label_position: Optional[Point] = None
+    label_position: Optional[Point | Rectangle] = None
     pivot: Optional[str] = None
+    source_point: Optional[Point] = None
+    target_point: Optional[Point] = None
+
+
+@dataclass
+class CGMLLink:
+    """
+    A comment link: an edge from a comment to a node or a transition.
+
+    pivot, chunk: dPivot, dChunk; position: the polyline;
+    unknown_datanodes: the extension data.
+    """
+
+    id: str
+    source: str
+    target: str
+    pivot: Optional[str] = None
+    chunk: Optional[str] = None
+    position: List[Point] = Field(default_factory=list)
+    source_point: Optional[Point] = None
+    target_point: Optional[Point] = None
+    unknown_datanodes: List[CGMLDataNode] = Field(default_factory=list)
 
 
 @dataclass
@@ -210,6 +272,10 @@ class CGMLNote:
     type: str
     unknown_datanodes: List[CGMLDataNode]
     parent: str | None = None
+    formal_name: Optional[str] = None
+    markup: Optional[str] = None
+    color: Optional[str] = None
+    region: Optional[str] = None
 
 
 @dataclass
@@ -224,6 +290,7 @@ class CGMLMeta:
 
     id: str
     values: Dict[str, str]
+    unknown_datanodes: List[CGMLDataNode] = Field(default_factory=list)
 
 
 @dataclass
@@ -275,6 +342,12 @@ class CGMLStateMachine:
     deep_history: Dict[str, CGMLDeepHistory]
     unknown_vertexes: Dict[str, CGMLBaseVertex]
     name: Optional[str] = Field(default=None)
+    formal_name: Optional[str] = None
+    bounds: Optional[Rectangle] = None
+    links: Dict[str, CGMLLink] = Field(default_factory=dict)
+    entry_points: Dict[str, CGMLEntryPoint] = Field(default_factory=dict)
+    exit_points: Dict[str, CGMLExitPoint] = Field(default_factory=dict)
+    unknown_datanodes: List[CGMLDataNode] = Field(default_factory=list)
 
 
 class CGMLElements(BaseModel):
@@ -301,5 +374,7 @@ Vertex = (
     CGMLTerminate |
     CGMLShallowHistory |
     CGMLDeepHistory |
+    CGMLEntryPoint |
+    CGMLExitPoint |
     CGMLBaseVertex
 )

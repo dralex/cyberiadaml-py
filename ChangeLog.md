@@ -1,5 +1,21 @@
 # cyberiadaml-py project changelog
 
+## Version 1.6.0 (unreleased)
+
+Added:
+- the 1.6 fields of the 1.x types, for the elements of the extension profiles: comment links
+  (`CGMLStateMachine.links`, also to transitions), `entry_points` and `exit_points`, submachine
+  states (`CGMLState.submachine`), regions (`CGMLState.regions`, the `region` of a child),
+  `collapsed`, formal names, the `markup` and colour of comments, vertex colours, the machine
+  `bounds`, label rects, the source and target points of transitions; the extension data of
+  components, vertices, regions, machines and the metadata node.
+
+Changed:
+- `unknown_datanodes` keeps the extension keys only: the standard keys of the extension profiles
+  have typed fields (the builder still maps them when a caller gives them as data);
+- entry and exit points are no longer in `unknown_vertexes`;
+- a transition with a `pivot` is written as a comment link.
+
 ## Version 1.5.0 (unreleased)
 
 Added:

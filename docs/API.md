@@ -59,9 +59,26 @@ What 1.5 changes in their content:
 | duplicate edge ids in one machine | one transition lost | `<id>#<N>` for the later ones |
 | function graphs | read and written | read and written after the state machines, outside the standard |
 
-Fields planned for 1.6 (additive, all optional): the submachine reference, `collapsed` and
-`formal_name` of states, typed `entry_points` / `exit_points`, the label rect and the source and
-target points of transitions, `markup` of comments, `formal_name` of machines.
+### The 1.6 fields
+
+All additive, with defaults; the standard elements of the extension profiles get typed fields:
+
+| type | new fields |
+|---|---|
+| `CGMLStateMachine` | `formal_name`, `bounds` (the machine `Rectangle`), `links: Dict[str, CGMLLink]`, `entry_points: Dict[str, CGMLEntryPoint]`, `exit_points: Dict[str, CGMLExitPoint]`, `unknown_datanodes` (of the machine graph) |
+| `CGMLState` | `submachine` (the id of the referenced machine: a submachine state), `collapsed`, `formal_name`, `region` (the region of the parent it sits in), `regions: List[CGMLRegion]` |
+| `CGMLRegion` (new) | `id`, `name`, `formal_name`, `bounds`, `unknown_datanodes` |
+| `CGMLBaseVertex` and its kinds | `formal_name`, `color`, `region`, `unknown_datanodes` |
+| `CGMLEntryPoint`, `CGMLExitPoint` (new) | vertex kinds; the points of a state or of a submachine state (`parent`), no longer in `unknown_vertexes` |
+| `CGMLNote` | `formal_name`, `markup`, `color`, `region` |
+| `CGMLComponent` | `unknown_datanodes` (geometry and extension data of the component comment) |
+| `CGMLTransition` | `label_position` a `Point` or a `Rectangle`, `source_point`, `target_point` |
+| `CGMLLink` (new) | `id`, `source` (a comment), `target` (a node or a transition), `pivot`, `chunk`, `position` (polyline), `source_point`, `target_point`, `unknown_datanodes` |
+| `CGMLMeta` | `unknown_datanodes` (the other data of the metadata node, first machine) |
+
+`unknown_datanodes` keeps the extension keys only. The builder still maps standard keys a 1.5
+caller left in `unknown_datanodes` (and the `pivot` of a transition: written as a comment link);
+the typed fields win. The new texts are kept as written (the 1.x ones stay trimmed).
 
 ## The Core Interface
 

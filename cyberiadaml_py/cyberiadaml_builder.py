@@ -19,6 +19,7 @@ from cyberiadaml_py.types.elements import (
 )
 from cyberiadaml_py.utils import to_list
 
+PRIVATE_PREFIX = 'dLapki'
 COMPONENT_NAME = 'CGML_COMPONENT'
 META_NAME = 'CGML_META'
 META_ID = 'nMeta'
@@ -31,6 +32,8 @@ VERTEX_FIELDS = (
     ('terminates', 'terminate'),
     ('shallow_history', 'shallowHistory'),
     ('deep_history', 'deepHistory'),
+    ('entry_points', 'entryPoint'),
+    ('exit_points', 'exitPoint'),
     ('unknown_vertexes', None)
 )
 
@@ -65,8 +68,20 @@ def _shape(node: CGMLDataNode) -> Optional[core.Point | core.Rect]:
     return core.Point(points[0].x, points[0].y) if points else None
 
 
+def _number(value: float) -> str:
+    text = repr(float(value))
+    return text[:-2] if text.endswith('.0') else text
+
+
 def _data_elem(node: CGMLDataNode) -> ET.Element:
     elem = ET.Element('data', {'key': node.key})
+    points = to_list(node.point)
+    if node.key.startswith(PRIVATE_PREFIX) and len(points) == 1 and \
+            node.rect is None and not node.content:
+        # a private Lapki point is kept as text (dialect D-5)
+        x, y = _number(points[0].x), _number(points[0].y)
+        elem.text = 'x/ %s\n\ny/ %s' % (x, y)
+        return elem
     if node.content is not None:
         elem.text = node.content
     if node.rect is not None:
@@ -90,6 +105,11 @@ def _apply(item, nodes: List[CGMLDataNode]) -> None:
             item.markup = node.content
         elif key == 'dColor' and hasattr(item, 'color'):
             item.color = node.content
+        elif key == 'dGeometry' and hasattr(item, 'polyline'):
+            item.polyline = [core.Point(p.x, p.y)
+                             for p in to_list(node.point)]
+        elif key == 'dGeometry' and hasattr(item, 'geometry'):
+            item.geometry = _shape(node)
         elif key == 'dLabelGeometry' and isinstance(item, core.Transition):
             item.label_geometry = _shape(node)
         elif key == 'dSourcePoint' and hasattr(item, 'source_point'):
@@ -103,6 +123,21 @@ def _apply(item, nodes: List[CGMLDataNode]) -> None:
                 core.Extension(key, node.content, _data_elem(node)))
 
 
+def _typed(item, **fields) -> None:
+    """Set the typed fields over what _apply took from the data."""
+    for name, value in fields.items():
+        if value is not None and value is not False:
+            setattr(item, name, value)
+
+
+def _region(region) -> core.Region:
+    result = core.Region(region.id or None, None, name=region.name,
+                         formal_name=region.formal_name,
+                         geometry=_geometry(region.bounds))
+    _apply(result, region.unknown_datanodes)
+    return result
+
+
 def _parameters(params: List[Tuple[str, str]]) -> str:
     return '\n\n'.join('%s/ %s' % param for param in params)
 
@@ -113,48 +148,70 @@ class _MachineBuilder:
     def __init__(self, sm_id: str, sm: CGMLStateMachine,
                  meta: Optional[core.Comment]) -> None:
         self.machine = core.StateMachine(sm_id, None, name=sm.name)
+        _apply(self.machine, sm.unknown_datanodes)
+        _typed(self.machine, formal_name=sm.formal_name,
+               geometry=_geometry(sm.bounds))
         if meta is not None:
             self.machine.children.append(meta)
         self.nodes: Dict[str, object] = {}
-        self.order: List[Tuple[object, Optional[str]]] = []
+        self.order: List[Tuple[object, Optional[str], Optional[str]]] = []
         for node_id, component in sm.components.items():
-            self.add(core.Comment(
+            comment = core.Comment(
                 node_id, None, name='%s %s' % (COMPONENT_NAME, component.id),
                 kind='formal', body=_parameters(
                     [('type', component.type)] +
-                    list(component.parameters.items()))), None)
+                    list(component.parameters.items())))
+            _apply(comment, component.unknown_datanodes)
+            self.add(comment, None)
         for state_id, state in sm.states.items():
             self.state(state_id, state)
         for field, kind in VERTEX_FIELDS:
             for vertex_id, vertex in getattr(sm, field).items():
-                self.add(core.Vertex(
+                node = core.Vertex(
                     vertex_id, None, name=vertex.data,
                     geometry=_geometry(vertex.position),
-                    kind=kind or vertex.type), vertex.parent)
+                    kind=kind or vertex.type)
+                _apply(node, vertex.unknown_datanodes)
+                _typed(node, formal_name=vertex.formal_name,
+                       color=vertex.color)
+                self.add(node, vertex.parent, vertex.region)
         for note_id, note in sm.notes.items():
             comment = core.Comment(
                 note_id, None, name=note.name or None,
                 geometry=_geometry(note.position),
                 kind=note.type or 'informal', body=note.text)
             _apply(comment, note.unknown_datanodes)
-            self.add(comment, note.parent)
+            _typed(comment, formal_name=note.formal_name, markup=note.markup,
+                   color=note.color)
+            self.add(comment, note.parent, note.region)
         self.place()
         for transition in sm.transitions.values():
             self.edge(transition)
+        for link in sm.links.values():
+            item = core.CommentLink(
+                link.id, None, source=link.source, target=link.target,
+                pivot=link.pivot, chunk=link.chunk,
+                polyline=[core.Point(p.x, p.y) for p in link.position])
+            _apply(item, link.unknown_datanodes)
+            _typed(item, source_point=_geometry(link.source_point),
+                   target_point=_geometry(link.target_point))
+            self.machine.links.append(item)
 
-    def add(self, node, parent: Optional[str]) -> None:
+    def add(self, node, parent: Optional[str],
+            region: Optional[str] = None) -> None:
         self.nodes[node.id] = node
-        self.order.append((node, parent))
+        self.order.append((node, parent, region))
 
     def state(self, state_id: str, state) -> None:
         refs = [d.content for d in state.unknown_datanodes
                 if d.key == 'dSubmachineState']
+        ref = state.submachine or (refs[0] if refs else None)
         node: core.State | core.SubmachineState
-        if refs:
+        if ref is not None:
             node = core.SubmachineState(
                 state_id, None, name=state.name or None,
                 geometry=_geometry(state.bounds), color=state.color,
-                ref=refs[0])
+                ref=ref)
         else:
             node = core.State(
                 state_id, None, name=state.name or None,
@@ -162,10 +219,14 @@ class _MachineBuilder:
                 data=state.actions or None)
         _apply(node, [d for d in state.unknown_datanodes
                       if d.key != 'dSubmachineState'])
-        self.add(node, state.parent)
+        _typed(node, formal_name=state.formal_name)
+        if isinstance(node, core.State):
+            _typed(node, collapsed=state.collapsed)
+        node.regions = [_region(region) for region in state.regions]
+        self.add(node, state.parent, state.region)
 
     def place(self) -> None:
-        for node, parent in self.order:
+        for node, parent, region in self.order:
             if parent is None:
                 self.machine.children.append(node)
                 continue
@@ -174,30 +235,39 @@ class _MachineBuilder:
                 raise CGMLBuilderException(
                     'The parent %r of %r is not a state.' %
                     (parent, getattr(node, 'id', None)))
-            if not owner.regions:
-                owner.regions.append(core.Region(None, None))
-            owner.regions[0].children.append(node)
+            if region is not None:
+                target = next((r for r in owner.regions if r.id == region),
+                              None)
+            else:
+                target = owner.regions[0] if owner.regions else None
+            if target is None:
+                target = core.Region(region, None)
+                owner.regions.append(target)
+            target.children.append(node)
 
     def edge(self, transition) -> None:
         pivots = [d for d in transition.unknown_datanodes
                   if d.key == 'dPivot']
-        if pivots:
-            link = core.CommentLink(transition.id, None,
-                                    source=transition.source,
-                                    target=transition.target,
-                                    pivot=pivots[0].content)
+        if pivots or transition.pivot is not None:
+            # a 1.4 comment link among the transitions
+            link = core.CommentLink(
+                transition.id, None, source=transition.source,
+                target=transition.target,
+                pivot=transition.pivot if transition.pivot is not None
+                else pivots[0].content)
             _apply(link, [d for d in transition.unknown_datanodes
                           if d.key != 'dPivot'])
             self.machine.links.append(link)
             return
-        label = transition.label_position
         edge = core.Transition(
             transition.id, None, source=transition.source,
             target=transition.target, data=transition.actions or None,
             polyline=[core.Point(p.x, p.y) for p in transition.position],
-            label_geometry=core.Point(label.x, label.y) if label else None,
+            label_geometry=_geometry(transition.label_position),
             color=transition.color)
         _apply(edge, transition.unknown_datanodes)
+        _typed(edge, source_point=_geometry(transition.source_point),
+               target_point=_geometry(transition.target_point))
         self.machine.transitions.append(edge)
 
 
@@ -233,12 +303,18 @@ def _unique_ids(document: core.Document) -> None:
                 renamed[node.id] = new
                 node.id = new
             nodes.add(node.id)
+        renamed_edges = {}
         for edge in list(machine.transitions) + list(machine.links):
             edge.source = renamed.get(edge.source, edge.source)
             edge.target = renamed.get(edge.target, edge.target)
             if edge.id in edges:
-                edge.id = _free('%s#1' % edge.id, edges, '%s#%d')
+                new = _free('%s#1' % edge.id, edges, '%s#%d')
+                renamed_edges[edge.id] = new
+                edge.id = new
             edges.add(edge.id)
+        for link in machine.links:
+            # a link to a renamed transition follows it
+            link.target = renamed_edges.get(link.target, link.target)
 
 
 def _document(elements: CGMLElements) -> core.Document:
@@ -260,6 +336,7 @@ def _document(elements: CGMLElements) -> core.Document:
                                 enumerate(params)]
         meta = core.Comment(first.meta.id or META_ID, None, name=META_NAME,
                             kind='formal', body=_parameters(params))
+        _apply(meta, first.meta.unknown_datanodes)
         document.meta_comment = meta
     for index, (sm_id, sm) in enumerate(machines):
         document.machines.append(

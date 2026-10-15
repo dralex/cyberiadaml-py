@@ -134,13 +134,13 @@ now carry:
 | `CGMLStateMachine.meta.values`, `platform`, `standard_version` | the document metadata overlaid with the machine parameters (D-1) — every machine gets them |
 | `CGMLStateMachine.name` | the machine name; an unnamed machine is named by its graph id (D-8b) |
 | element and edge ids | as written, per machine: a dialect rename (D-7f, D-7a) is undone where the id is free in the machine |
-| `CGMLStateMachine.states` | states and submachine states by id; `parent` is the enclosing state, regions are not visible |
+| `CGMLStateMachine.states` | states and submachine states by id; `parent` is the enclosing state, `region` its region; `regions` of a state (1.6) |
 | `CGMLState.actions`, `CGMLTransition.actions` | the behaviour text, trimmed as 1.4 did (lapki-compiler parses it itself) |
-| `CGMLStateMachine.transitions` | transitions only — comment links are no longer transitions |
+| `CGMLStateMachine.transitions` | transitions only; comment links in `links` (1.6) |
 | `CGMLStateMachine.components` | `CGML_COMPONENT <id>` comments by node id: `id`, `type`, the other parameters |
 | `CGMLStateMachine.notes` | the other comments, formal and informal; `position` a `Point`, a `Rectangle` or `None` |
-| vertex dictionaries | by kind; `data` is the vertex name; entry/exit points in `unknown_vertexes` until 1.6 |
-| `unknown_datanodes` | the `data` items the 1.x fields do not hold: extension keys and the standard keys of the extension profiles (`dFormalName`, `dCollapsed`, `dSubmachineState`, …) |
+| vertex dictionaries | by kind; `data` is the vertex name; entry/exit points in `entry_points` / `exit_points` (1.6) |
+| `unknown_datanodes` | the `data` items the 1.x fields do not hold: the extension keys (1.5: also the standard keys of the extension profiles, typed in 1.6) |
 
 `CGMLBuilder` writes the metadata once, from the first machine, and the comments with their own
 kind; it maps the standard keys among `unknown_datanodes` back onto the core fields. 1.x ids are

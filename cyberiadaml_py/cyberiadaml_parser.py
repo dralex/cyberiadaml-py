@@ -27,13 +27,17 @@ from cyberiadaml_py.types.elements import (
     CGMLComponent,
     CGMLDeepHistory,
     CGMLElements,
+    CGMLEntryPoint,
+    CGMLExitPoint,
     CGMLFinal,
     CGMLFunction,
     CGMLInitialState,
     CGMLInput,
+    CGMLLink,
     CGMLMeta,
     CGMLNote,
     CGMLOutput,
+    CGMLRegion,
     CGMLShallowHistory,
     CGMLState,
     CGMLStateMachine,
@@ -48,14 +52,31 @@ VERTEX_TYPES = {
     'final': ('finals', CGMLFinal),
     'terminate': ('terminates', CGMLTerminate),
     'shallowHistory': ('shallow_history', CGMLShallowHistory),
-    'deepHistory': ('deep_history', CGMLDeepHistory)
+    'deepHistory': ('deep_history', CGMLDeepHistory),
+    'entryPoint': ('entry_points', CGMLEntryPoint),
+    'exitPoint': ('exit_points', CGMLExitPoint)
 }
 
 # the data keys the 1.x types hold in their own fields; any other data
 # item of the element goes into unknown_datanodes
-STATE_KEYS: Tuple[str, ...] = ('dName', 'dGeometry', 'dData', 'dColor')
-NOTE_KEYS: Tuple[str, ...] = ('dNote', 'dName', 'dGeometry', 'dData')
-TRANSITION_KEYS: Tuple[str, ...] = ('dData', 'dGeometry', 'dColor')
+STATE_KEYS: Tuple[str, ...] = ('dName', 'dGeometry', 'dData', 'dColor',
+                               'dSubmachineState', 'dCollapsed',
+                               'dFormalName')
+NOTE_KEYS: Tuple[str, ...] = ('dNote', 'dName', 'dGeometry', 'dData',
+                              'dMarkup', 'dColor', 'dFormalName')
+COMPONENT_KEYS: Tuple[str, ...] = ('dNote', 'dName', 'dData')
+VERTEX_KEYS: Tuple[str, ...] = ('dVertex', 'dName', 'dGeometry', 'dColor',
+                                'dFormalName')
+TRANSITION_KEYS: Tuple[str, ...] = ('dData', 'dGeometry', 'dColor',
+                                    'dLabelGeometry', 'dSourcePoint',
+                                    'dTargetPoint')
+LINK_KEYS: Tuple[str, ...] = ('dPivot', 'dChunk', 'dGeometry',
+                              'dSourcePoint', 'dTargetPoint')
+MACHINE_KEYS: Tuple[str, ...] = ('dStateMachine', 'dName', 'dGeometry',
+                                 'dFormalName')
+REGION_KEYS: Tuple[str, ...] = ('dRegion', 'dName', 'dGeometry',
+                                'dFormalName')
+META_KEYS: Tuple[str, ...] = ('dNote', 'dName', 'dData')
 
 
 class CGMLParserException(Exception):
@@ -109,6 +130,16 @@ def _geometry(value) -> Optional[Point | Rectangle]:
     if isinstance(value, core.Point):
         return Point(x=value.x, y=value.y)
     return None
+
+
+def _rect(value) -> Optional[Rectangle]:
+    shape = _geometry(value)
+    return shape if isinstance(shape, Rectangle) else None
+
+
+def _point(value) -> Optional[Point]:
+    shape = _geometry(value)
+    return shape if isinstance(shape, Point) else None
 
 
 def _data_node(elem: ET.Element) -> CGMLDataNode:
@@ -166,39 +197,59 @@ class _MachineBuilder:
         self.document = document
         self.sm = create_empty_state_machine()
         values = _values(document, machine)
-        self.sm.meta = CGMLMeta(id=(document.meta_id or '') if first else '',
-                                values=values)
+        meta = getattr(document.meta_comment, 'elem', None)
+        self.sm.meta = CGMLMeta(
+            id=(document.meta_id or '') if first else '', values=values,
+            unknown_datanodes=_unknown(meta, META_KEYS) if first else [])
         self.sm.platform = values.get('platform', '')
         self.sm.standard_version = values.get('standardVersion', '')
         self.sm.name = machine.name.strip() if machine.name else None
+        self.sm.formal_name = machine.formal_name
+        self.sm.bounds = _rect(machine.geometry)
+        self.sm.unknown_datanodes = _unknown(machine.elem, MACHINE_KEYS)
         for child in machine.children:
-            self.node(child, None)
+            self.node(child, None, None)
         for transition in machine.transitions:
             self.transition(transition)
+        for link in machine.links:
+            self.link(link)
 
     def id(self, value: Optional[str]) -> str:
         # 1.x keeps the ids per machine, as written (no D-7f renames)
         return self.document.original_ids.get(value, value or '')
 
-    def node(self, node, parent: Optional[str]) -> None:
+    def node(self, node, parent: Optional[str],
+             region: Optional[str]) -> None:
         if isinstance(node, core.Comment):
-            self.comment(node, parent)
+            self.comment(node, parent, region)
         elif isinstance(node, core.Vertex):
-            self.vertex(node, parent)
+            self.vertex(node, parent, region)
         else:
+            submachine = node.ref if isinstance(
+                node, core.SubmachineState) else None
             self.sm.states[self.id(node.id)] = CGMLState(
                 name=_text(node.name),
                 actions=_text(getattr(node, 'data', None)),
                 unknown_datanodes=_unknown(node.elem, STATE_KEYS),
                 parent=parent,
                 bounds=_geometry(node.geometry),
-                color=node.color
+                color=node.color,
+                submachine=submachine,
+                collapsed=getattr(node, 'collapsed', False),
+                formal_name=node.formal_name,
+                region=region,
+                regions=[CGMLRegion(
+                    id=r.id or '', name=r.name, formal_name=r.formal_name,
+                    bounds=_rect(r.geometry),
+                    unknown_datanodes=_unknown(r.elem, REGION_KEYS))
+                    for r in node.regions]
             )
-            for region in node.regions:
-                for child in region.children:
-                    self.node(child, self.id(node.id))
+            for item in node.regions:
+                for child in item.children:
+                    self.node(child, self.id(node.id), item.id)
 
-    def comment(self, node: core.Comment, parent: Optional[str]) -> None:
+    def comment(self, node: core.Comment, parent: Optional[str],
+                region: Optional[str]) -> None:
         if node is self.document.meta_comment:
             return
         component = node.component()
@@ -206,7 +257,8 @@ class _MachineBuilder:
             ident, kind, params = component
             self.sm.components[self.id(node.id)] = CGMLComponent(
                 id=ident, type=_text(kind),
-                parameters={p.name.strip(): _text(p.value) for p in params})
+                parameters={p.name.strip(): _text(p.value) for p in params},
+                unknown_datanodes=_unknown(node.elem, COMPONENT_KEYS))
             return
         self.sm.notes[self.id(node.id)] = CGMLNote(
             name=_text(node.name),
@@ -214,36 +266,56 @@ class _MachineBuilder:
             text=_text(node.body),
             type=_text(node.kind) or 'informal',
             unknown_datanodes=_unknown(node.elem, NOTE_KEYS),
-            parent=parent
+            parent=parent,
+            formal_name=node.formal_name,
+            markup=node.markup,
+            color=node.color,
+            region=region
         )
 
-    def vertex(self, node: core.Vertex, parent: Optional[str]) -> None:
+    def vertex(self, node: core.Vertex, parent: Optional[str],
+               region: Optional[str]) -> None:
         kind = _text(node.kind)
         field, cls = VERTEX_TYPES.get(kind,
                                       ('unknown_vertexes', CGMLBaseVertex))
         getattr(self.sm, field)[self.id(node.id)] = cls(
             type=kind, data=node.name, position=_geometry(node.geometry),
-            parent=parent)
+            parent=parent, formal_name=node.formal_name, color=node.color,
+            region=region,
+            unknown_datanodes=_unknown(node.elem, VERTEX_KEYS))
+
+    def edge_id(self, value: Optional[str], taken: dict) -> str:
+        # an edge id renamed for a duplicate in another machine comes back
+        ident = self.id(value)
+        return (value or '') if ident in taken else ident
 
     def transition(self, edge: core.Transition) -> None:
-        known = TRANSITION_KEYS
-        label = None
-        if isinstance(edge.label_geometry, core.Point):
-            known = known + ('dLabelGeometry',)
-            label = Point(x=edge.label_geometry.x, y=edge.label_geometry.y)
-        # an edge id renamed for a duplicate in another machine comes back
-        ident = self.id(edge.id)
-        if ident in self.sm.transitions:
-            ident = edge.id or ''
+        ident = self.edge_id(edge.id, self.sm.transitions)
         self.sm.transitions[ident] = CGMLTransition(
             id=ident,
             source=self.id(edge.source),
             target=self.id(edge.target),
             actions=_text(edge.data),
-            unknown_datanodes=_unknown(edge.elem, known),
+            unknown_datanodes=_unknown(edge.elem, TRANSITION_KEYS),
             color=edge.color,
             position=[Point(x=p.x, y=p.y) for p in edge.polyline],
-            label_position=label
+            label_position=_geometry(edge.label_geometry),
+            source_point=_point(edge.source_point),
+            target_point=_point(edge.target_point)
+        )
+
+    def link(self, edge: core.CommentLink) -> None:
+        ident = self.edge_id(edge.id, self.sm.links)
+        self.sm.links[ident] = CGMLLink(
+            id=ident,
+            source=self.id(edge.source),
+            target=self.id(edge.target),
+            pivot=edge.pivot,
+            chunk=edge.chunk,
+            position=[Point(x=p.x, y=p.y) for p in edge.polyline],
+            source_point=_point(edge.source_point),
+            target_point=_point(edge.target_point),
+            unknown_datanodes=_unknown(edge.elem, LINK_KEYS)
         )
 
 
