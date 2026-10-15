@@ -93,7 +93,8 @@ comparable. Every element has `id`, `elem` (its source element), `parent`, `line
 * `Document` - `format` (the `gFormat` value after the repairs), `label` (`FORMAT_STANDARD` |
   `FORMAT_LAPKI`), `keys: list[KeyDecl]`, `meta_comment`, `meta_id`, `meta_params:
   list[Param]`, `meta_errors`, `geometry_mode`, `machines: list[StateMachine]`,
-  `findings: list[Finding]`, `extension_graphs` (the dialect D-9 graphs); `param(name)`,
+  `findings: list[Finding]`, `extension_graphs` (the dialect D-9 graphs), `original_ids` (an id
+  given by the dialect pass, D-7f or D-7a, to the id as written); `param(name)`,
   `transition_order()`, `event_propagation()`, `markup_language()`;
 * `StateMachine` - `name`, `formal_name`, `geometry: Rect | None`, `marker`, `children`,
   `transitions`, `links`, `params: list[Param]` (dialect D-1 only);

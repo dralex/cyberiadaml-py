@@ -76,8 +76,7 @@ def test_composite_document():
     root = _tree(text)
     keys = [(k.get('id'), k.get('for'), k.get('attr.name'))
             for k in root if k.tag == 'key']
-    assert ('dLapkiFlag', 'node', 'flag') in keys
-    assert ('dCollapsed', 'node', 'collapsed') in keys
+    assert keys == [(k.id, k.for_kind, k.attr_name) for k in document.keys]
     assert [c.tag for c in root][0] == 'data'
     outer = [n for n in root.iter('node') if n.get('id') == 'n1'][0]
     assert [g.get('id') for g in outer if g.tag == 'graph'] == \
@@ -140,3 +139,20 @@ def test_broken_model_is_refused():
     with pytest.raises(core.CGMLError) as error:
         core.write(document)
     assert 'CGML-6.3-2' in {f.req for f in error.value.findings}
+
+
+def test_key_declarations():
+    """Check declared keys are kept, missing extension keys declared."""
+    document = core.read(minimal(keys=KEYS + FLAG_KEY, machines=COMPOSITE),
+                         strict=True)
+    document.keys = [k for k in document.keys if k.id != 'dLapkiFlag']
+    root = _tree(core.write(document))
+    keys = [(k.get('id'), k.get('for')) for k in root if k.tag == 'key']
+    assert keys[-1] == ('dLapkiFlag', 'node')
+    assert ('dCollapsed', 'node') not in keys
+    document.keys = []
+    root = _tree(core.write(document))
+    keys = [(k.get('id'), k.get('for'), k.get('attr.name'))
+            for k in root if k.tag == 'key']
+    assert ('dCollapsed', 'node', 'collapsed') in keys
+    assert ('gFormat', 'graphml', 'format') == keys[0]

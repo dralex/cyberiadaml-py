@@ -87,16 +87,30 @@ class _Writer:
                 self.data(parent, kind, ext.key, ext.text)
 
     def keys(self, root: ET.Element) -> None:
-        standard = [k for k in STANDARD_BINDINGS if k in self.used]
-        for key, kind in standard:
-            attrs = {'id': key, 'for': kind,
-                     'attr.name': STANDARD_BINDINGS[(key, kind)]}
-            if key not in UNTYPED_KEYS:
-                attrs['attr.type'] = 'string'
+        # the document keeps its own declarations; one without any gets
+        # those of appendix B for the keys in use
+        written = set()
+        for decl in self.document.keys:
+            attrs = {'id': decl.id}
+            for name, value in (('for', decl.for_kind),
+                                ('attr.name', decl.attr_name),
+                                ('attr.type', decl.attr_type)):
+                if value is not None:
+                    attrs[name] = value
             ET.SubElement(root, 'key', attrs)
+            written.add(decl.id)
+        if not self.document.keys:
+            for key, kind in [k for k in STANDARD_BINDINGS
+                              if k in self.used]:
+                attrs = {'id': key, 'for': kind,
+                         'attr.name': STANDARD_BINDINGS[(key, kind)]}
+                if key not in UNTYPED_KEYS:
+                    attrs['attr.type'] = 'string'
+                ET.SubElement(root, 'key', attrs)
         for key, kind in self.used:
-            if (key, kind) in STANDARD_BINDINGS:
+            if (key, kind) in STANDARD_BINDINGS or key in written:
                 continue
+            written.add(key)
             decl = self.declared.get((key, kind))
             name = getattr(decl, 'attr_name', None) or \
                 (key[1].lower() + key[2:] if key.startswith('d') and
@@ -232,9 +246,14 @@ def _free(base: str, taken: set) -> str:
     return name
 
 
+def render(document: Document) -> str:
+    """Return the document text without the check of write()."""
+    return _Writer(document).write()
+
+
 def write(document: Document) -> str:
     """Write a standard document; raise CGMLError on a MUST violation."""
     from .reader import read
-    text = _Writer(document).write()
+    text = render(document)
     read(text, strict=True)
     return text

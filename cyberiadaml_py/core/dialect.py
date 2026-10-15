@@ -89,6 +89,8 @@ class Result:
     # state machine graph id -> the parameters of its removed metadata node
     machine_params: dict = field(default_factory=dict)
     extension_graphs: list = field(default_factory=list)
+    # an id given by D-7f or D-7a -> the id as written
+    renamed: dict = field(default_factory=dict)
     repairs: int = 0
 
 
@@ -206,7 +208,7 @@ def _region_ids(ctx, root):
             taken.add(new)
 
 
-def _node_ids(ctx, root):
+def _node_ids(ctx, root, result):
     taken = {n.get('id') for n in root.iter('node')} | \
         {g.get('id') for g in root.iter('graph')}
     seen = set()
@@ -227,6 +229,7 @@ def _node_ids(ctx, root):
             node.set('id', new)
             taken.add(new)
             renamed[nid] = new
+            result.renamed[new] = nid
         for edge in machine.iter('edge'):
             for end in ('source', 'target'):
                 if edge.get(end) in renamed:
@@ -234,7 +237,7 @@ def _node_ids(ctx, root):
         seen.update(n.get('id') for n in nodes)
 
 
-def _edge_ids(ctx, root):
+def _edge_ids(ctx, root, result):
     edges = list(root.iter('edge'))
     taken = {e.get('id') for e in edges}
     seen = set()
@@ -253,6 +256,7 @@ def _edge_ids(ctx, root):
                      (eid, new), elem=edge)
             edge.set('id', new)
             taken.add(new)
+            result.renamed[new] = eid
             eid = new
         seen.add(eid)
 
@@ -462,9 +466,9 @@ def apply(ctx, dialect=LAPKI):
     _functions(ctx, root, result)
     _meta(ctx, root, result)
     _components(ctx, root)
-    _node_ids(ctx, root)
+    _node_ids(ctx, root, result)
     _region_ids(ctx, root)
-    _edge_ids(ctx, root)
+    _edge_ids(ctx, root, result)
     _nodes(ctx, root)
     _machines(ctx, root)
     result.repairs = len(ctx.report.findings) - before

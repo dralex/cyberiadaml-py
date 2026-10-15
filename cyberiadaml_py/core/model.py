@@ -222,6 +222,8 @@ class Document:
     label: str = 'Cyberiada-GraphML-1.0'
     findings: list = field(default_factory=list)
     extension_graphs: list = field(default_factory=list)
+    # an id the dialect pass gave (D-7f, D-7a) -> the id as written
+    original_ids: dict = field(default_factory=dict)
 
     @property
     def meta_id(self):

@@ -55,7 +55,11 @@ Every check reports a finding — rule name, requirement id (`CGML-<clause>-<n>`
 A finding is fatal when no model can be formed: a document that is not well-formed XML, a root
 other than `graphml`, no state machine graph, an element without an id, a duplicate id the dialect
 pass does not repair. Elements the permissive reader cannot place (a foreign tag, an edge to an
-unknown node) are skipped and named in their finding.
+unknown node) are skipped and named in their finding. A document whose only graphs are the
+function graphs the dialect pass took out (D-9) reads as an empty model with them.
+
+The ids the dialect pass gives (D-7f, D-7a) map back to the ids as written in
+`Document.original_ids`.
 
 The document format label is `Cyberiada-GraphML-1.0`, or `Cyberiada-GraphML-Lapki` when a dialect
 repair fired or the metadata has `lapkiVisual`.
@@ -101,8 +105,9 @@ the development plan concern the writer paths, the 1.x facade and the claimed pr
 
 `core/writer.py` writes a model as a standard document:
 
-- `gFormat` `Cyberiada-GraphML-1.0` first, then the key declarations of appendix Б for the keys in
-  use and the declarations of the extension keys;
+- `gFormat` `Cyberiada-GraphML-1.0` first, then the document's own key declarations as they came
+  and a declaration for every extension key in use without one; a model without declarations
+  (built in code) gets those of appendix Б for the keys in use;
 - one `graph` per machine with `edgedefault="directed"`; the metadata node first in the first
   machine and nowhere else; the edges of a machine as one block at its end (§5.8.2);
 - the `data` of an element in the appendix А order (`dNote`, `dSubmachineState`, `dVertex` first
@@ -110,8 +115,10 @@ the development plan concern the writer paths, the 1.x facade and the claimed pr
 - region graph ids from the model; a region without one gets `<state id>::region`;
 - geometry and text as in the model; text escaping by the XML serializer (§5.2).
 
-The writer never repairs: a model that breaks a MUST rule (e.g. a transition to a missing node)
-raises `CGMLError` with the findings of a check run over the result.
+The writer never repairs: `write()` reads its own output back in the strict mode, and a model
+that breaks a MUST rule (e.g. a transition to a missing node) raises `CGMLError` with those
+findings. `writer.render()` gives the text without the check — for the 1.x builder's documents of
+function graphs only.
 
 ## The 1.x facade
 

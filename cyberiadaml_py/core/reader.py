@@ -82,6 +82,7 @@ def _finish(ctx: rules.Context) -> Document:
     if result is not None:
         document.label = result.label
         document.extension_graphs = result.extension_graphs
+        document.original_ids = result.renamed
     for machine in document.machines:
         machine.line = _line(ctx, machine.elem)
         machine.extensions = _extensions(machine.elem)
@@ -124,7 +125,9 @@ def read(data: Union[str, bytes], *, strict: bool = False) -> Document:
     for layer in (3, 4):
         rules.run_layer(ctx, layer)
         _stop(ctx, strict, layer)
-    if not ctx.model.machines:
+    # an empty model is readable only with dialect extension graphs (D-9)
+    if not ctx.model.machines and \
+            not (ctx.dialect and ctx.dialect.extension_graphs):
         ctx.emit('document-model', 'no state machine graph to read',
                  elem=ctx.parsed.root)
         raise CGMLError(ctx.report.findings)
