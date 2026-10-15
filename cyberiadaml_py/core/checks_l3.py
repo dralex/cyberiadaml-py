@@ -20,7 +20,6 @@
 #
 # -----------------------------------------------------------------------------
 """The L3 layer: attribute and value checks."""
-import datetime
 import re
 
 from . import model as model_mod
@@ -41,6 +40,11 @@ FORMAL_NAME_RE = re.compile(r'^[A-Za-z_][A-Za-z_0-9]*$')
 LATIN_NAME_RE = re.compile(r'^[A-Za-z]+$')
 HEX_COLOR_RE = re.compile(r'^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$')
 EDGE_ID_RE = re.compile(r'^.+-.+(#[0-9]+)?$')
+# ISO 8601 date and time, basic or extended, with an optional offset; the same
+# in every Python version (fromisoformat takes 'Z' from 3.11 on only)
+ISO_TIMESTAMP_RE = re.compile(
+    r'^[0-9]{4}-?[0-9]{2}-?[0-9]{2}([T ][0-9]{2}(:?[0-9]{2}(:?[0-9]{2}'
+    r'([.,][0-9]+)?)?)?(Z|[+-][0-9]{2}(:?[0-9]{2})?)?)?$')
 PIVOT_VALUES = ('dName', 'dData', '')
 COMPONENT_PREFIX = model_mod.COMPONENT_NAME + ' '
 
@@ -523,9 +527,7 @@ def _created_at(ctx):
     value = doc.param('createdAt')
     if value is None:
         return
-    try:
-        datetime.datetime.fromisoformat(value.strip())
-    except ValueError:
+    if not ISO_TIMESTAMP_RE.match(value.strip()):
         ctx.emit('created-at',
                  'createdAt %r is not an ISO 8601 timestamp' % value,
                  elem=doc.meta_comment.elem)

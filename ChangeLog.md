@@ -25,3 +25,5 @@ Removed:
 
 Fixed:
 - duplicate edge ids no longer lose a transition.
+- the `createdAt` check gives the same result in every Python version (3.10 took a timestamp
+  with `Z` for an error).

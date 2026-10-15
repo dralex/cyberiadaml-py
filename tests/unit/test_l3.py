@@ -396,6 +396,13 @@ def test_created_at_informational():
     ctx = run(with_meta(
         'standardVersion/ 1.0\n\ncreatedAt/ 2024-04-24T10:20:30Z'))
     assert ctx.report.findings == []
+    # forms Python 3.10's fromisoformat refused: Z, the basic format
+    for stamp in ('20240424T102030Z', '2024-04-24T10:20:30.5+03:00',
+                  '2024-04-24'):
+        ctx = run(with_meta('standardVersion/ 1.0\n\ncreatedAt/ ' + stamp))
+        assert ctx.report.findings == [], stamp
+    ctx = run(with_meta('standardVersion/ 1.0\n\ncreatedAt/ 2024-04-24 UTC'))
+    assert rule_names(ctx) == ['created-at']
     ctx = run(with_meta('standardVersion/ 1.0\n\ncreatedAt/ yesterday'))
     assert rule_names(ctx) == ['created-at']
     assert ctx.report.valid(strict=True)
