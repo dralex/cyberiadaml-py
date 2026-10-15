@@ -19,7 +19,7 @@ from cyberiadaml_py.types.elements import (
 )
 
 
-def test_build_with_function_and_state_machine():
+def test_build_with_function_and_state_machine(tmp_path):
     """Test builder generates XML with both a function and a state machine."""
     # 1. Создаём функцию
     func = CGMLFunction(
@@ -148,7 +148,7 @@ def test_build_with_function_and_state_machine():
     xml_str = builder.build(elements)
 
     # Сохраняем для диагностики
-    with open('test_both.xml', 'w', encoding='utf-8') as f:
+    with open(tmp_path / 'test_both.xml', 'w', encoding='utf-8') as f:
         f.write(xml_str)
 
     # 5. Парсим XML обратно

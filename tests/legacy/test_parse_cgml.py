@@ -15,7 +15,7 @@ from cyberiadaml_py.types.elements import (
 )
 
 
-def test_build_and_parse_function():
+def test_build_and_parse_function(tmp_path):
     """Test building a function graph and then parsing it back."""
     func = CGMLFunction(
         id='func_sum',
@@ -88,7 +88,7 @@ def test_build_and_parse_function():
     xml_str = builder.build(elements)
 
     # Сохраняем для диагностики
-    with open('func_sum.xml', 'w', encoding='utf-8') as f:
+    with open(tmp_path / 'func_sum.xml', 'w', encoding='utf-8') as f:
         f.write(xml_str)
 
     # Проверяем, что XML содержит все рёбра

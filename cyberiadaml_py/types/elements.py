@@ -199,12 +199,13 @@ class CGMLNote:
     type: content of <data key="dNote">
     text: content of <data key="dData">
     name: content of <data key="dName">
-    position: properties <data key="dGeometry">'s child <point> or <rect>
+    position: properties <data key="dGeometry">'s child <point> or <rect>,
+              None for a comment without geometry
     unknownDatanodes: all datanodes, whose information is not included.
     """
 
     name: str
-    position: Point | Rectangle
+    position: Optional[Point | Rectangle]
     text: str
     type: str
     unknown_datanodes: List[CGMLDataNode]

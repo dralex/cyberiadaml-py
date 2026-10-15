@@ -1,0 +1,3358 @@
+{
+ "client-demo-autoborder": {
+  "g": {
+   "platform": "BearlogaDefend-Autoborder",
+   "meta": {
+    "platform": "BearlogaDefend-Autoborder",
+    "standardVersion": "1.0",
+    "name": "Автобортник",
+    "author": "Матросов В.М.",
+    "contact": "matrosov@mail.ru",
+    "description": "Пример описания схемы, \nкоторый может быть многострочным, потому что так удобнее",
+    "target": "Autoborder",
+    "platformVersion": "1.0"
+   },
+   "name": "g",
+   "states": {
+    "n0": [
+     "Бой",
+     "entry/\n\nexit/",
+     null
+    ],
+    "n0::n1": [
+     "Сближение",
+     "entry/\nМодульДвижения.ДвигатьсяКЦели()\n\nexit/",
+     "n0"
+    ],
+    "n0::n2": [
+     "Атака",
+     "entry/\nОружиеЦелевое.АтаковатьЦель()",
+     "n0"
+    ],
+    "n3": [
+     "Скан",
+     "entry/\nСенсор.ПоискВрагаПоДистанции(мин)\n\nexit/\nСенсор.ОстановкаПоиска()",
+     null
+    ]
+   },
+   "transitions": {
+    "init-n3": [
+     "init",
+     "n3",
+     ""
+    ],
+    "n0-n3": [
+     "n0",
+     "n3",
+     "АнализаторЦели.ЦельПотеряна/"
+    ],
+    "n3-n0::n1": [
+     "n3",
+     "n0::n1",
+     "Сенсор.ЦельПолучена/"
+    ],
+    "n0::n1-n0::n2": [
+     "n0::n1",
+     "n0::n2",
+     "ОружиеЦелевое.ЦельВошлаВЗонуАтаки/"
+    ],
+    "n0::n2-n0::n1": [
+     "n0::n2",
+     "n0::n1",
+     "ОружиеЦелевое.ЦельВышлаИзЗоныАтаки/"
+    ],
+    "lnjmwqsafxzhjthzfyly": [
+     "n0",
+     "n3",
+     "АнализаторЦели.ЦельУничтожена/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {}
+  }
+ },
+ "client-demo-blinker": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLEDG1.on()\ntimerG1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLEDG1.off()\ntimerG1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timerG1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timerG1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LEDG1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timerG1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  },
+  "A": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "A",
+   "states": {
+    "Adiod1": [
+     "Включен",
+     "entry/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "Adiod2": [
+     "Выключен",
+     "entry/\nLED1.off()\ntimer1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "Ainit-edge": [
+     "Ainit",
+     "Adiod1",
+     ""
+    ],
+    "Aedge3": [
+     "Adiod1",
+     "Adiod2",
+     "timer1.timeout/"
+    ],
+    "Aedge4": [
+     "Adiod2",
+     "Adiod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "Ainit": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLEDA1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimerA1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "client-demo-cyberiada-blinker": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on()\nTimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()\nTimer1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "Timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "Timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "Timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "client-demo-tjc-ms1-blinker": {
+  "G": {
+   "platform": "tjc-ms1-btn-a2",
+   "meta": {
+    "platform": "tjc-ms1-btn-a2",
+    "standardVersion": "1.0",
+    "name": "МС-ТЮК мигалочница",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()\ntimer1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "1"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "client-template-autoborder": {
+  "G": {
+   "platform": "BearlogaDefend-Autoborder",
+   "meta": {
+    "platform": "BearlogaDefend-Autoborder",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "G",
+   "states": {
+    "n0": [
+     "Бой",
+     "entry/\n\nexit/",
+     null
+    ],
+    "n0::n1": [
+     "Сближение",
+     "entry/\nNavigation.MoveToTarget()\n\nexit/",
+     "n0"
+    ],
+    "n0::n2": [
+     "Атака",
+     "entry/\nWeapon.Activate()\n\nexit/",
+     "n0"
+    ],
+    "n3": [
+     "Скан",
+     "entry/\nScaner.FindRivalByDistance(min)\n\nexit/\nScaner.Stop()",
+     null
+    ]
+   },
+   "transitions": {
+    "xahmjixxndyajicaidfv": [
+     "n0",
+     "n3",
+     "TargetAnalyser.Lost/"
+    ],
+    "ibjwlpwztesdkheqymbe": [
+     "n0",
+     "n3",
+     "TargetAnalyser.Destroyed/"
+    ],
+    "jxzqcesbtbzpcqqlfsbl": [
+     "n3",
+     "n0::n1",
+     "Scaner.TargetAcquired/"
+    ],
+    "xuxnxwkdnkhwtehpqcak": [
+     "n0::n1",
+     "n0::n2",
+     "Weapon.TargetEnteredRange/"
+    ],
+    "qzwxffcdvmfzpncpvsae": [
+     "n0::n2",
+     "n0::n1",
+     "Weapon.TargetLeftRange/"
+    ],
+    "uwbqqjnbyjovjbsfuhxq": [
+     "ucqaehdydqejwjkobkax",
+     "n3",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "ucqaehdydqejwjkobkax": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {}
+  }
+ },
+ "client-template-blinker": {
+  "ArduinoUno1": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру",
+    "lapkiVisual": "true"
+   },
+   "name": "Мигалка",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "client-template-generator": {
+  "G": {
+   "platform": "BearlogaDefend-Generator",
+   "meta": {
+    "platform": "BearlogaDefend-Generator",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "G",
+   "states": {
+    "n0": [
+     "Скан",
+     "entry/\nScaner.FindAllyByDps(max)\n\nexit/\nScaner.Stop()",
+     null
+    ],
+    "n1": [
+     "Помощь",
+     "entry/\nNavigation.MoveToTarget()\nCharger.Activate()\n\nexit/\nCharger.Stop()",
+     null
+    ]
+   },
+   "transitions": {
+    "xvluqmhseqkkyeaxkcyj": [
+     "n0",
+     "n1",
+     "Scaner.TargetAcquired/"
+    ],
+    "vcgcszmklkoewwekoipi": [
+     "n1",
+     "n0",
+     "Charger.TargetLeftZone/"
+    ],
+    "twqibasoeijydkzdqlfx": [
+     "n1",
+     "n0",
+     "TargetAnalyser.Destroyed/"
+    ],
+    "bxfdlbipnbvesljeotsn": [
+     "mswgbcyelqyffwfwasgk",
+     "n0",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "mswgbcyelqyffwfwasgk": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {}
+  }
+ },
+ "client-template-smoker": {
+  "G": {
+   "platform": "BearlogaDefend-Smoker",
+   "meta": {
+    "platform": "BearlogaDefend-Smoker",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "G",
+   "states": {
+    "n0": [
+     "Скан",
+     "entry/\nScaner.FindRivalByDistance(min)\n\nexit/\nScaner.Stop()",
+     null
+    ],
+    "n1": [
+     "Бой",
+     "entry/\n\nexit/",
+     null
+    ],
+    "n1::n2": [
+     "Сближение",
+     "entry/\nNavigation.MoveToTarget()\n\nexit/\nNavigation.Stop()",
+     "n1"
+    ],
+    "n1::n3": [
+     "Атака",
+     "entry/\nMassWeapon.Activate()\n\nexit/",
+     "n1"
+    ]
+   },
+   "transitions": {
+    "zawbqjiekdxmthgidvyh": [
+     "n0",
+     "n1::n2",
+     "Scaner.TargetAcquired/"
+    ],
+    "qhtlqalmgumwmivnzjhj": [
+     "n1",
+     "n0",
+     "TargetAnalyser.Lost/"
+    ],
+    "zgveyytwyfmsfkpjlkdu": [
+     "n1",
+     "n0",
+     "TargetAnalyser.Destroyed/"
+    ],
+    "wklogclhnimeuxaypuen": [
+     "n1::n2",
+     "n1::n3",
+     "MassWeapon.TargetEnteredRange/"
+    ],
+    "edtgubimgntwbipbqtyl": [
+     "n1::n3",
+     "n1::n2",
+     "MassWeapon.TargetLeftRange/"
+    ],
+    "utxpzkhxadcevlemcmtt": [
+     "aixcxljxoczsfvsinzuq",
+     "n0",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "aixcxljxoczsfvsinzuq": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {}
+  }
+ },
+ "client-template-stapler": {
+  "G": {
+   "platform": "BearlogaDefend-Stapler",
+   "meta": {
+    "platform": "BearlogaDefend-Stapler",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "G",
+   "states": {
+    "n0": [
+     "Бой",
+     "entry/\n\nexit/",
+     null
+    ],
+    "n0::n1": [
+     "Сближение",
+     "entry/\nNavigation.MoveToTarget()\n\nexit/",
+     "n0"
+    ],
+    "n0::n2": [
+     "Атака",
+     "entry/\nWeapon.Activate()\nNavigation.Stop()\n\nexit/",
+     "n0"
+    ],
+    "n3": [
+     "Скан",
+     "entry/\nScaner.FindRivalByDistance(min)\n\nexit/\nScaner.Stop()",
+     null
+    ]
+   },
+   "transitions": {
+    "ofomvvwijhmsykqxonot": [
+     "n0",
+     "n3",
+     "TargetAnalyser.Lost/"
+    ],
+    "ipiyttzwnkuhuhlodvfj": [
+     "n0",
+     "n3",
+     "TargetAnalyser.Destroyed/"
+    ],
+    "sfdqczcixsbemqhdkyiy": [
+     "n3",
+     "n0::n2",
+     "Scaner.TargetAcquired[Weapon.TargetInRange == 1]/"
+    ],
+    "mcstwtqllpkxgcaxbyod": [
+     "n3",
+     "n0::n1",
+     "Scaner.TargetAcquired/"
+    ],
+    "fjsqpivkwidixhpywgzm": [
+     "n0::n1",
+     "n0::n2",
+     "Weapon.TargetEnteredRange/"
+    ],
+    "mslysceuialajvmbxwat": [
+     "n0::n2",
+     "n0::n1",
+     "Weapon.TargetLeftRange/"
+    ],
+    "ijcvtvnwnqhiiksftvps": [
+     "uatheliidyykfpfpllph",
+     "n3",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "uatheliidyykfpfpllph": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {}
+  }
+ },
+ "compiler-choices": {
+  "Ga": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "platformVersion": "1.0",
+    "standardVersion": "1.0"
+   },
+   "name": "Ga",
+   "states": {
+    "sfdmmeidqlauhjhyudvj": [
+     "ADD",
+     "entry/\nTimer1.start(2000);\nCounter1.add(1);",
+     null
+    ],
+    "gnnygmdtipfahdwyczgs": [
+     "SUB",
+     "entry/\nTimer1.start(2000);\nCounter1.sub(1);",
+     null
+    ]
+   },
+   "transitions": {
+    "kqvealtjeeutftwpewon": [
+     "gquxxfkcnnuxqupybpsl",
+     "sfdmmeidqlauhjhyudvj",
+     ""
+    ],
+    "zdwblhnaiygvwpxxnlqe": [
+     "sfdmmeidqlauhjhyudvj",
+     "spjtslyxubbfmnokvavz",
+     "Timer1.timeout/"
+    ],
+    "ijyufugqtsnddxbsnsvt": [
+     "spjtslyxubbfmnokvavz",
+     "gnnygmdtipfahdwyczgs",
+     "[Counter1.value >= 5]/ QHsmSerial::println(\"Больше или равно\");"
+    ],
+    "voonhvxsjkteszdltzfs": [
+     "spjtslyxubbfmnokvavz",
+     "sfdmmeidqlauhjhyudvj",
+     "[Counter1.value <= 5]/ QHsmSerial::println(\"Меньше или равно\");"
+    ],
+    "blabla": [
+     "spjtslyxubbfmnokvavz",
+     "sfdmmeidqlauhjhyudvj",
+     "[else]/ QHsmSerial::println(\"Else\");"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "gquxxfkcnnuxqupybpsl": null
+    },
+    "choices": {
+     "spjtslyxubbfmnokvavz": null
+    },
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cTimer1": [
+     "Timer1",
+     "Timer",
+     {}
+    ],
+    "cQHsmSerial": [
+     "QHsmSerial",
+     "QHsmSerial",
+     {
+      "baud": "9600"
+     }
+    ],
+    "cCounter1": [
+     "Counter1",
+     "Counter",
+     {}
+    ]
+   }
+  }
+ },
+ "compiler-cyberiadaformat-blinker": {
+  "Ga": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "platformVersion": "1.0",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "Ga",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "compiler-initial-states": {
+  "Ga": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0"
+   },
+   "name": "Ga",
+   "states": {
+    "ytpqqvuajpnczvfnuquc": [
+     "Главное состояние",
+     "entry/\nTimer1.start(5000);\nQHsmSerial::println(\"Вошли в главное состояние\");",
+     null
+    ],
+    "vmbpwwemcyqyywuqbiby": [
+     "Подсостояние",
+     "entry/\nQHsmSerial::println(\"Вошли в подсостояние\");",
+     "ytpqqvuajpnczvfnuquc"
+    ],
+    "gvuxfwblozjgixwcmvkw": [
+     "Состояние",
+     "entry/\nTimer1.start(5000);\nQHsmSerial::println(\"Вошли во второе состояние\");",
+     null
+    ]
+   },
+   "transitions": {
+    "flfmuxehplsazwkjbbvx": [
+     "mqnudktinpiciufanqnn",
+     "ytpqqvuajpnczvfnuquc",
+     "QHsmSerial::println(\"Глобальное начальное состояние!\");"
+    ],
+    "lvgfxuugwxdkcxhdkqyb": [
+     "ipujuzkssjjanlpuhxdk",
+     "vmbpwwemcyqyywuqbiby",
+     "QHsmSerial::println(\"Дочернее начальное состояние!\");"
+    ],
+    "ibbzkehwwxzoxplaedsw": [
+     "ytpqqvuajpnczvfnuquc",
+     "gvuxfwblozjgixwcmvkw",
+     "Timer1.timeout/"
+    ],
+    "fwquhlcpeketzecywgte": [
+     "gvuxfwblozjgixwcmvkw",
+     "ytpqqvuajpnczvfnuquc",
+     "Timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "ipujuzkssjjanlpuhxdk": "ytpqqvuajpnczvfnuquc",
+     "mqnudktinpiciufanqnn": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cTimer1": [
+     "Timer1",
+     "Timer",
+     {}
+    ],
+    "cQHsmSerial": [
+     "QHsmSerial",
+     "QHsmSerial",
+     {
+      "baud": "9600"
+     }
+    ]
+   }
+  }
+ },
+ "compiler-irpcb-led-example": {
+  "Machine1": {
+   "platform": "IRPCB",
+   "meta": {
+    "platform": "IRPCB",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "Machine1",
+   "states": {
+    "ztcldydpeocjcqgglcab": [
+     "Включается",
+     "entry/\nLed1.fadeIn(1500);",
+     null
+    ],
+    "mgaljvhjtpapgzwigdbg": [
+     "Выключается",
+     "entry/\nLed1.fadeOut(1500);",
+     null
+    ]
+   },
+   "transitions": {
+    "zsmkbqvfpanquvbdvffz": [
+     "msufiqwdptomgutgmasb",
+     "ztcldydpeocjcqgglcab",
+     ""
+    ],
+    "pllxilqdfuslideziwqt": [
+     "ztcldydpeocjcqgglcab",
+     "mgaljvhjtpapgzwigdbg",
+     "Led1.isReady/"
+    ],
+    "vjkyzsxwseivvcamhslw": [
+     "mgaljvhjtpapgzwigdbg",
+     "ztcldydpeocjcqgglcab",
+     "Led1.isReady/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "msufiqwdptomgutgmasb": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLed1": [
+     "Led1",
+     "Led",
+     {
+      "Контакт": "LED_PWM4"
+     }
+    ]
+   }
+  }
+ },
+ "compiler-ms-button-all": {
+  "G": {
+   "platform": "tjc-ms1-btn-a2",
+   "meta": {
+    "platform": "tjc-ms1-btn-a2",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "G",
+   "states": {
+    "dkhdpihjzfmzmujlwemm": [
+     "Состояние",
+     "",
+     null
+    ]
+   },
+   "transitions": {
+    "jmycaipezszehygsqnfo": [
+     "magbpbcqxhkuuvbpaxyg",
+     "dkhdpihjzfmzmujlwemm",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "magbpbcqxhkuuvbpaxyg": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cDataBus1": [
+     "DataBus1",
+     "DataBus",
+     {
+      "baudrate": "9600"
+     }
+    ],
+    "cButton1": [
+     "Button1",
+     "Button",
+     {
+      "pin": "1"
+     }
+    ],
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "pin": "1"
+     }
+    ],
+    "cTimer1": [
+     "Timer1",
+     "Timer",
+     {}
+    ],
+    "cCounter1": [
+     "Counter1",
+     "Counter",
+     {}
+    ]
+   }
+  }
+ },
+ "compiler-ms-lmp-all": {
+  "G": {
+   "platform": "tjc-ms1-lmp-a3",
+   "meta": {
+    "platform": "tjc-ms1-lmp-a3",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "G",
+   "states": {
+    "bntnyxxtatmmxcehpzss": [
+     "Состояние",
+     "",
+     null
+    ]
+   },
+   "transitions": {
+    "wwymooamgfvmlmcszndg": [
+     "dtgvztolqyadautjamxa",
+     "bntnyxxtatmmxcehpzss",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "dtgvztolqyadautjamxa": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cDataBus1": [
+     "DataBus1",
+     "DataBus",
+     {
+      "baudrate": "9600"
+     }
+    ],
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "pin": "1"
+     }
+    ],
+    "cTimer1": [
+     "Timer1",
+     "Timer",
+     {}
+    ],
+    "cCounter1": [
+     "Counter1",
+     "Counter",
+     {}
+    ]
+   }
+  }
+ },
+ "compiler-ms-main-all": {
+  "G": {
+   "platform": "tjc-ms1-main-a4",
+   "meta": {
+    "platform": "tjc-ms1-main-a4",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "G",
+   "states": {
+    "qnumwmujstjftbthbpfz": [
+     "Состояние",
+     "",
+     null
+    ]
+   },
+   "transitions": {
+    "mktkxxxwmwleviunpany": [
+     "gjjuceaadyhqgfqyolqj",
+     "qnumwmujstjftbthbpfz",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "gjjuceaadyhqgfqyolqj": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cSimpleBus1": [
+     "SimpleBus1",
+     "SimpleBus",
+     {}
+    ],
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "pin": "1"
+     }
+    ],
+    "cTimer1": [
+     "Timer1",
+     "Timer",
+     {}
+    ],
+    "cCounter1": [
+     "Counter1",
+     "Counter",
+     {}
+    ]
+   }
+  }
+ },
+ "compiler-ms-mtrx-all": {
+  "G": {
+   "platform": "tjc-ms1-mtrx-a2",
+   "meta": {
+    "platform": "tjc-ms1-mtrx-a2",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true"
+   },
+   "name": "G",
+   "states": {
+    "ecavnakaxqvkoufldcww": [
+     "Состояние",
+     "",
+     null
+    ]
+   },
+   "transitions": {
+    "napdphqgywbvmqnmdbvd": [
+     "ynonyybfoelqmxgnplug",
+     "ecavnakaxqvkoufldcww",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "ynonyybfoelqmxgnplug": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cSimpleBus1": [
+     "SimpleBus1",
+     "SimpleBus",
+     {}
+    ],
+    "cMatrix1": [
+     "Matrix1",
+     "Matrix",
+     {}
+    ],
+    "cTimer1": [
+     "Timer1",
+     "Timer",
+     {}
+    ],
+    "cCounter1": [
+     "Counter1",
+     "Counter",
+     {}
+    ]
+   }
+  }
+ },
+ "compiler-ms1-btn": {
+  "G": {
+   "platform": "tjc-ms1-btn-a2",
+   "meta": {
+    "platform": "tjc-ms1-btn-a2",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "name": "Центральная мигалка МС-ТЮК",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "1"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "compiler-ms1-lmp": {
+  "G": {
+   "platform": "tjc-ms1-lmp-a3",
+   "meta": {
+    "platform": "tjc-ms1-lmp-a3",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "name": "Центральная мигалка МС-ТЮК",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "1"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "compiler-ms1-main": {
+  "Ga": {
+   "platform": "tjc-ms1-main-a4",
+   "meta": {
+    "platform": "tjc-ms1-main-a4",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "name": "Центральная мигалка МС-ТЮК",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "Ga",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "1"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "compiler-ms1-mtrx": {
+  "G": {
+   "platform": "tjc-ms1-mtrx-a2",
+   "meta": {
+    "platform": "tjc-ms1-mtrx-a2",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "name": "Центральная мигалка МС-ТЮК",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.setPattern({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25});\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.offPixel(1, 0);\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "Matrix",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "1"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "compiler-test-cyberbear": {
+  "Machine1": {
+   "platform": "blg-mb-1-a7",
+   "meta": {
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true",
+    "platform": "blg-mb-1-a7"
+   },
+   "name": "Machine1",
+   "states": {
+    "tjxomtwwajiiwisdxkln": [
+     "Состояние",
+     "",
+     null
+    ],
+    "exccfhjtngpmkkesgswz": [
+     "Состояние",
+     "entry/\nLED1.on();",
+     null
+    ]
+   },
+   "transitions": {
+    "weokycmnipfpawummwpx": [
+     "zouwbyxpisevohiafewg",
+     "exccfhjtngpmkkesgswz",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "zouwbyxpisevohiafewg": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cMatrix1": [
+     "Matrix1",
+     "Matrix",
+     {}
+    ],
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "pin": "2"
+     }
+    ]
+   }
+  }
+ },
+ "compiler-test-initial-states": {
+  "MS1Lamp2": {
+   "platform": "tjc-ms1-lmp-a3",
+   "meta": {
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true",
+    "platform": "tjc-ms1-lmp-a3"
+   },
+   "name": "Ведомый",
+   "states": {
+    "zjejixbfnljnbxalwltt": [
+     "Внимание, скоро загорится красный",
+     "entry/\nLED4.off();\nLED5.on();\nLED6.off();\nTimer4.start(1000);",
+     null
+    ],
+    "hsmpputdwnjmzdqxinim": [
+     "Движение запрещено",
+     "entry/\nTimer4.start(5000);\nLED4.on();\nLED5.off();\nLED6.off();",
+     null
+    ],
+    "dzollqabgoewhabzmipn": [
+     "Ожидание",
+     "entry/\nTimer3.start(4000);",
+     "hsmpputdwnjmzdqxinim"
+    ],
+    "vsmpqwtqfmuevclepulj": [
+     "Мигание",
+     "entry/\nTimer6.start(200);",
+     "hsmpputdwnjmzdqxinim"
+    ],
+    "kbluidupkjmazlyheuya": [
+     "Включен",
+     "entry/\nLED4.off();",
+     "vsmpqwtqfmuevclepulj"
+    ],
+    "ahexalelxhoofddposct": [
+     "Выключен",
+     "entry/\nLED4.on();",
+     "vsmpqwtqfmuevclepulj"
+    ],
+    "oddqthooagtamsqcubxc": [
+     "Внимание, скоро загорится зеленый",
+     "entry/\nLED4.off();\nLED5.on();\nLED6.off();\nTimer4.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "fbpylcsyhhycdsabhogg": [
+     "kajqhcjqaiwlztifaxsu",
+     "zjejixbfnljnbxalwltt",
+     ""
+    ],
+    "xqbiatgqjkqjmzumvfaq": [
+     "bhmiedzjveueqgwinwuz",
+     "dzollqabgoewhabzmipn",
+     ""
+    ],
+    "mbfkzqdaelwtwnuwqmhi": [
+     "zfzwdiytawsfztqfubwt",
+     "kbluidupkjmazlyheuya",
+     ""
+    ],
+    "jssyktgxceaehimyvgqs": [
+     "dzollqabgoewhabzmipn",
+     "vsmpqwtqfmuevclepulj",
+     "Timer3.timeout/"
+    ],
+    "uwzdcnvvhfncqlajheey": [
+     "kbluidupkjmazlyheuya",
+     "ahexalelxhoofddposct",
+     "Timer6.timeout/"
+    ],
+    "sbkumpidmszygjwgwqpd": [
+     "ahexalelxhoofddposct",
+     "kbluidupkjmazlyheuya",
+     "Timer6.timeout/"
+    ],
+    "kzzyvbsitmamyqdwjjfi": [
+     "zjejixbfnljnbxalwltt",
+     "hsmpputdwnjmzdqxinim",
+     "Timer4.timeout/"
+    ],
+    "sbbpgmdklgznovcxaelg": [
+     "hsmpputdwnjmzdqxinim",
+     "oddqthooagtamsqcubxc",
+     "Timer4.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "zfzwdiytawsfztqfubwt": "vsmpqwtqfmuevclepulj",
+     "bhmiedzjveueqgwinwuz": "hsmpputdwnjmzdqxinim",
+     "kajqhcjqaiwlztifaxsu": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cTimer3": [
+     "Timer3",
+     "Timer",
+     {
+      "label": "миг",
+      "name": "ТаймерМигания"
+     }
+    ],
+    "cTimer4": [
+     "Timer4",
+     "Timer",
+     {
+      "label": "фаз",
+      "name": "ТаймерФазы"
+     }
+    ],
+    "cLED4": [
+     "LED4",
+     "LED",
+     {
+      "pin": "1",
+      "label": "кра",
+      "labelColor": "#ff0000",
+      "name": "Красный"
+     }
+    ],
+    "cLED5": [
+     "LED5",
+     "LED",
+     {
+      "pin": "2",
+      "labelColor": "#d4b00c",
+      "label": "ЖЕЛ",
+      "name": "Желтый"
+     }
+    ],
+    "cLED6": [
+     "LED6",
+     "LED",
+     {
+      "pin": "3",
+      "labelColor": "#06ff1a",
+      "label": "ЗЕЛ",
+      "name": "Зеленый"
+     }
+    ],
+    "cTimer5": [
+     "Timer5",
+     "Timer",
+     {
+      "label": "ИНИ",
+      "name": "ТаймерИнициализации"
+     }
+    ],
+    "cTimer6": [
+     "Timer6",
+     "Timer",
+     {
+      "name": "ТаймерОдногоМигания"
+     }
+    ],
+    "cSimpleBus1": [
+     "SimpleBus1",
+     "SimpleBus",
+     {}
+    ]
+   }
+  }
+ },
+ "compiler-test-parent-transitions": {
+  "MS1Lamp1": {
+   "platform": "tjc-ms1-lmp-a3",
+   "meta": {
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true",
+    "platform": "tjc-ms1-lmp-a3"
+   },
+   "name": "MS1Lamp1",
+   "states": {
+    "opffyasscvvpicxlhzet": [
+     "Начальное",
+     "entry/\nLED1.on();\nLED2.on();\nLED3.on();\nTimer1.start(2000);",
+     null
+    ],
+    "gkymncckchgzqwhfsyfd": [
+     "Родительское",
+     "entry/\nLED1.off();\nLED2.off();\nLED3.off();\nTimer2.start(1000);\nTimer1.disable();",
+     null
+    ],
+    "iwautgzajohiggsbvxvf": [
+     "Лампочка 1",
+     "entry/\nLED1.on();",
+     "gkymncckchgzqwhfsyfd"
+    ],
+    "zippnzlkilhmmckanmvv": [
+     "Лампочка 2",
+     "entry/\nLED2.on();",
+     "gkymncckchgzqwhfsyfd"
+    ],
+    "wydsgxxupcepcbtpvffm": [
+     "Лампочка 3",
+     "entry/\nLED3.on();",
+     "gkymncckchgzqwhfsyfd"
+    ]
+   },
+   "transitions": {
+    "mwiltsjxobjyfpumybfi": [
+     "nvazmnxhujnqwpbbijhx",
+     "opffyasscvvpicxlhzet",
+     ""
+    ],
+    "otddlgxsbahqvvkbzfnm": [
+     "opffyasscvvpicxlhzet",
+     "gkymncckchgzqwhfsyfd",
+     "Timer1.timeout/"
+    ],
+    "ttvhcicfygmlsphpmfns": [
+     "mxmbeegeevcftekigiyv",
+     "iwautgzajohiggsbvxvf",
+     ""
+    ],
+    "wclddnqlmqvdfnjcgmmf": [
+     "iwautgzajohiggsbvxvf",
+     "zippnzlkilhmmckanmvv",
+     "Timer2.timeout/\nLED1.off();"
+    ],
+    "mbdwdqaioqzlatyspwoc": [
+     "zippnzlkilhmmckanmvv",
+     "wydsgxxupcepcbtpvffm",
+     "Timer2.timeout/\nLED2.off();"
+    ],
+    "szeuvsntoetisftiycji": [
+     "wydsgxxupcepcbtpvffm",
+     "gkymncckchgzqwhfsyfd",
+     "Timer2.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "mxmbeegeevcftekigiyv": "gkymncckchgzqwhfsyfd",
+     "nvazmnxhujnqwpbbijhx": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "pin": "1"
+     }
+    ],
+    "cLED2": [
+     "LED2",
+     "LED",
+     {
+      "pin": "2"
+     }
+    ],
+    "cLED3": [
+     "LED3",
+     "LED",
+     {
+      "pin": "3"
+     }
+    ],
+    "cTimer1": [
+     "Timer1",
+     "Timer",
+     {}
+    ],
+    "cTimer2": [
+     "Timer2",
+     "Timer",
+     {}
+    ]
+   }
+  }
+ },
+ "compiler-test-shallow-history": {
+  "MS1Button1": {
+   "platform": "tjc-ms1-btn-a2",
+   "meta": {
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true",
+    "platform": "tjc-ms1-btn-a2"
+   },
+   "name": "MS1Button1",
+   "states": {
+    "ofqxuuiznezyoahpqlmy": [
+     "Горит 1",
+     "entry/\nLED1.on();\n\nexit/\nLED1.off();",
+     null
+    ],
+    "hcqcbbmspgipyngbguxv": [
+     "Меняем 2 и 3",
+     "exit/\nLED2.off();\nLED3.off();",
+     null
+    ],
+    "zyplpafjabvnapaghkey": [
+     "Горит 2",
+     "entry/\nLED2.on();\n\nexit/\nLED2.off();",
+     "hcqcbbmspgipyngbguxv"
+    ],
+    "hdajieyhsatjlysilhbe": [
+     "Горит 3",
+     "entry/\nLED3.on();\n\nexit/\nLED3.off();",
+     "hcqcbbmspgipyngbguxv"
+    ]
+   },
+   "transitions": {
+    "xcnnmlbfzvqfggvigbkd": [
+     "mbyhvnsifhyfqqskdamy",
+     "ofqxuuiznezyoahpqlmy",
+     ""
+    ],
+    "kjnmnlaxovjfutctaoum": [
+     "ydohplvyvlfhexlwwwle",
+     "zyplpafjabvnapaghkey",
+     ""
+    ],
+    "fibgyigoupwsglatqcco": [
+     "ofqxuuiznezyoahpqlmy",
+     "txeuquippxpuinnvttjo",
+     "Button1.clicked/"
+    ],
+    "gqwhnbkydjxvjbdhfyvt": [
+     "hcqcbbmspgipyngbguxv",
+     "ofqxuuiznezyoahpqlmy",
+     "Button1.clicked/"
+    ],
+    "zcopzhbckfqmslabhsox": [
+     "zyplpafjabvnapaghkey",
+     "hdajieyhsatjlysilhbe",
+     "Button2.clicked/"
+    ],
+    "jphipomnlildxwnpefua": [
+     "hdajieyhsatjlysilhbe",
+     "zyplpafjabvnapaghkey",
+     "Button2.clicked/"
+    ],
+    "wtszxvdsbchwpcstcxat": [
+     "txeuquippxpuinnvttjo",
+     "zyplpafjabvnapaghkey",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "ydohplvyvlfhexlwwwle": "hcqcbbmspgipyngbguxv",
+     "mbyhvnsifhyfqqskdamy": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {
+     "txeuquippxpuinnvttjo": "hcqcbbmspgipyngbguxv"
+    },
+    "deep_history": {}
+   },
+   "components": {
+    "cButton1": [
+     "Button1",
+     "Button",
+     {
+      "pin": "1"
+     }
+    ],
+    "cButton2": [
+     "Button2",
+     "Button",
+     {
+      "pin": "2"
+     }
+    ],
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "pin": "1"
+     }
+    ],
+    "cLED2": [
+     "LED2",
+     "LED",
+     {
+      "pin": "2"
+     }
+    ],
+    "cLED3": [
+     "LED3",
+     "LED",
+     {
+      "pin": "3"
+     }
+    ]
+   }
+  }
+ },
+ "compiler-two-blinkers": {
+  "Ga": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "Ga",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  },
+  "Oa": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "Oa",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "compiler-two-choices": {
+  "Ga": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0"
+   },
+   "name": "Ga",
+   "states": {
+    "tiwpygboomipgwdemmne": [
+     "Состояние",
+     "entry/\nTimer1.start(1000);\nTimer2.start(5000);\n\nTimer1.timeout/\nCounter1.add(1);",
+     null
+    ]
+   },
+   "transitions": {
+    "zuhjwxoyzoucjitmcbpi": [
+     "jvlpndkeqwdhdljynyqb",
+     "tiwpygboomipgwdemmne",
+     ""
+    ],
+    "iezxawquipspksxupxue": [
+     "tiwpygboomipgwdemmne",
+     "iphiwozkkmlvmyszkbwf",
+     "Timer2.timeout/"
+    ],
+    "xpzajsxtjmigohkaeglz": [
+     "iphiwozkkmlvmyszkbwf",
+     "osxuhjnsvmtycunuoddd",
+     "[Counter1.value > 4]/"
+    ],
+    "ilvgyjqoobfpkegukizt": [
+     "iphiwozkkmlvmyszkbwf",
+     "tiwpygboomipgwdemmne",
+     "[Counter1.value <= 4]/"
+    ],
+    "qdsvbhnlvtczyelioaug": [
+     "osxuhjnsvmtycunuoddd",
+     "tiwpygboomipgwdemmne",
+     "[Counter1.value >= 6]/"
+    ],
+    "izqvsnumhhqujqpcgdbd": [
+     "osxuhjnsvmtycunuoddd",
+     "tiwpygboomipgwdemmne",
+     "[Counter1.value < 6]/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "jvlpndkeqwdhdljynyqb": null
+    },
+    "choices": {
+     "iphiwozkkmlvmyszkbwf": null,
+     "osxuhjnsvmtycunuoddd": null
+    },
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cCounter1": [
+     "Counter1",
+     "Counter",
+     {}
+    ],
+    "cTimer1": [
+     "Timer1",
+     "Timer",
+     {}
+    ],
+    "cTimer2": [
+     "Timer2",
+     "Timer",
+     {}
+    ]
+   }
+  }
+ },
+ "compiler-with-final": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "platformVersion": "1.0",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(3000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(4000);\nQHsmSerial::println(\"E\");",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "feneybcjpchkygfizngj": [
+     "diod2",
+     "tjvoskyfsjgyefqjwxyd",
+     "timer1.timeout/\nQHsmSerial::println(\"End!\");"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {
+     "tjvoskyfsjgyefqjwxyd": null
+    },
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ],
+    "cQHsmSerial": [
+     "QHsmSerial",
+     "QHsmSerial",
+     {
+      "baud": "9600"
+     }
+    ]
+   }
+  }
+ },
+ "compiler-with-optional-parameter": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру",
+    "lapkiVisual": "true",
+    "platformVersion": "1.0"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ],
+    "cButton1": [
+     "Button1",
+     "Button",
+     {
+      "pin": "3"
+     }
+    ]
+   }
+  }
+ },
+ "compiler-with-propagate-block": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "name": "Arduino-Blinker",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);\n\ntimer2.timeout propagate/\nQHsmSerial::println(\"Propagate\");",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);\n\ntimer2.timeout block/\nQHsmSerial::println(\"Blocked\");",
+     null
+    ]
+   },
+   "transitions": {
+    "edge1": [
+     "mqnudktinpiciufanqnn",
+     "diod1",
+     ""
+    ],
+    "edge2": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge3": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "mqnudktinpiciufanqnn": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {}
+    ],
+    "ctimer2": [
+     "timer2",
+     "Timer",
+     {}
+    ],
+    "cQHsmSerial": [
+     "QHsmSerial",
+     "QHsmSerial",
+     {
+      "baud": "9600"
+     }
+    ]
+   }
+  }
+ },
+ "js-demo-arduino-blinker": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "Моя любимая машина состояний!",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry propagate/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()\ntimer1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "[condition]/ blabla"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "js-demo-empty-state": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "standardVersion": "1.0",
+    "platform": "ArduinoUno",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()\ntimer1.start(1000)",
+     null
+    ],
+    "duzdfkjywmelnmqtnuff": [
+     "Состояние",
+     "",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "js-demo-local-history": {
+  "MS1Button1": {
+   "platform": "tjc-ms1-btn-a2",
+   "meta": {
+    "standardVersion": "1.0",
+    "platformVersion": "1.0",
+    "lapkiVisual": "true",
+    "platform": "tjc-ms1-btn-a2"
+   },
+   "name": "MS1Button1",
+   "states": {
+    "ofqxuuiznezyoahpqlmy": [
+     "Горит 1",
+     "entry/\nLED1.on();\n\nexit/\nLED1.off();",
+     null
+    ],
+    "hcqcbbmspgipyngbguxv": [
+     "Меняем 2 и 3",
+     "exit/\nLED2.off();\nLED3.off();",
+     null
+    ],
+    "zyplpafjabvnapaghkey": [
+     "Горит 2",
+     "entry/\nLED2.on();\n\nexit/\nLED2.off();",
+     "hcqcbbmspgipyngbguxv"
+    ],
+    "hdajieyhsatjlysilhbe": [
+     "Горит 3",
+     "entry/\nLED3.on();\n\nexit/\nLED3.off();",
+     "hcqcbbmspgipyngbguxv"
+    ]
+   },
+   "transitions": {
+    "xcnnmlbfzvqfggvigbkd": [
+     "mbyhvnsifhyfqqskdamy",
+     "ofqxuuiznezyoahpqlmy",
+     ""
+    ],
+    "kjnmnlaxovjfutctaoum": [
+     "ydohplvyvlfhexlwwwle",
+     "zyplpafjabvnapaghkey",
+     ""
+    ],
+    "fibgyigoupwsglatqcco": [
+     "ofqxuuiznezyoahpqlmy",
+     "txeuquippxpuinnvttjo",
+     "Button1.clicked/"
+    ],
+    "gqwhnbkydjxvjbdhfyvt": [
+     "hcqcbbmspgipyngbguxv",
+     "ofqxuuiznezyoahpqlmy",
+     "Button1.clicked/"
+    ],
+    "zcopzhbckfqmslabhsox": [
+     "zyplpafjabvnapaghkey",
+     "hdajieyhsatjlysilhbe",
+     "Button2.clicked/"
+    ],
+    "jphipomnlildxwnpefua": [
+     "hdajieyhsatjlysilhbe",
+     "zyplpafjabvnapaghkey",
+     "Button2.clicked/"
+    ],
+    "wtszxvdsbchwpcstcxat": [
+     "txeuquippxpuinnvttjo",
+     "zyplpafjabvnapaghkey",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "ydohplvyvlfhexlwwwle": "hcqcbbmspgipyngbguxv",
+     "mbyhvnsifhyfqqskdamy": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {
+     "txeuquippxpuinnvttjo": "hcqcbbmspgipyngbguxv"
+    },
+    "deep_history": {
+     "deepHistory": "hcqcbbmspgipyngbguxv"
+    }
+   },
+   "components": {
+    "cButton1": [
+     "Button1",
+     "Button",
+     {
+      "pin": "1"
+     }
+    ],
+    "cButton2": [
+     "Button2",
+     "Button",
+     {
+      "pin": "2"
+     }
+    ],
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "pin": "1"
+     }
+    ],
+    "cLED2": [
+     "LED2",
+     "LED",
+     {
+      "pin": "2"
+     }
+    ],
+    "cLED3": [
+     "LED3",
+     "LED",
+     {
+      "pin": "3"
+     }
+    ]
+   }
+  }
+ },
+ "js-demo-nested": {
+  "g": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру",
+    "platformVersion": "1.0"
+   },
+   "name": "g",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ],
+    "vgkwfgpvpiijecqqsklc": [
+     "Состояние",
+     "",
+     "diod2"
+    ],
+    "qoyigesoisdelydcpebg": [
+     "Состояние2",
+     "",
+     "vgkwfgpvpiijecqqsklc"
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ],
+    "gcilpjvuetozyivwbibg": [
+     "uvzlbsocvdjwydtuzmbl",
+     "vgkwfgpvpiijecqqsklc",
+     ""
+    ],
+    "dnvyfmwktbpdumazbihd": [
+     "fzqikhowikmzqsdewfki",
+     "qoyigesoisdelydcpebg",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "fzqikhowikmzqsdewfki": "vgkwfgpvpiijecqqsklc",
+     "uvzlbsocvdjwydtuzmbl": "diod2",
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "js-demo-two-blinkers": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry propagate/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()\ntimer1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "[condition]/ blabla"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  },
+  "O": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "O",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry propagate/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()\ntimer1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "[condition]/ blabla"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "lib-lapki-js": {
+  "M1": {
+   "platform": "",
+   "meta": {
+    "standardVersion": "1.0"
+   },
+   "name": "Main",
+   "states": {
+    "n0": [
+     "Work",
+     "entry/\nstart()",
+     null
+    ],
+    "n0::n1": [
+     "Step",
+     "",
+     "n0"
+    ]
+   },
+   "transitions": {
+    "init-n0": [
+     "init",
+     "n0",
+     ""
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {}
+  },
+  "M2": {
+   "platform": "",
+   "meta": {
+    "standardVersion": "1.0"
+   },
+   "name": "Second",
+   "states": {
+    "m2s": [
+     "Idle",
+     "",
+     null
+    ]
+   },
+   "transitions": {},
+   "vertices": {
+    "initial_states": {},
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {}
+  }
+ },
+ "py-demo-autoborder": {
+  "G": {
+   "platform": "BearsTowerDefence",
+   "meta": {
+    "platform": "BearsTowerDefence",
+    "standardVersion": "1.0",
+    "name": "Автобортник",
+    "author": "Матросов В.М.",
+    "contact": "matrosov@mail.ru",
+    "description": "Пример описания схемы, \nкоторый может быть многострочным, потому что так удобнее",
+    "target": "Autoborder"
+   },
+   "name": "G",
+   "states": {
+    "n0": [
+     "Бой",
+     "entry/\n\nexit/",
+     null
+    ],
+    "n0::n1": [
+     "Сближение",
+     "entry/\nМодульДвижения.ДвигатьсяКЦели()\n\nexit/",
+     "n0"
+    ],
+    "n0::n2": [
+     "Атака",
+     "entry/\nОружиеЦелевое.АтаковатьЦель()\n\nexit/",
+     "n0"
+    ],
+    "n3": [
+     "Скан",
+     "entry/\nСенсор.ПоискВрагаПоДистанции(мин)\n\nexit/\nСенсор.ОстановкаПоиска()",
+     null
+    ]
+   },
+   "transitions": {
+    "init-n3": [
+     "init",
+     "n3",
+     ""
+    ],
+    "n0-n3": [
+     "n0",
+     "n3",
+     "АнализаторЦели.ЦельУничтожена/"
+    ],
+    "n0-n3#1": [
+     "n0",
+     "n3",
+     "АнализаторЦели.ЦельПотеряна/"
+    ],
+    "n3-n0::n1": [
+     "n3",
+     "n0::n1",
+     "Сенсор.ЦельПолучена/"
+    ],
+    "n0::n1-n0::n2": [
+     "n0::n1",
+     "n0::n2",
+     "ОружиеЦелевое.ЦельВошлаВЗонуАтаки/"
+    ],
+    "n0::n2-n0::n1": [
+     "n0::n2",
+     "n0::n1",
+     "ОружиеЦелевое.ЦельВышлаИзЗоныАтаки/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {}
+  }
+ },
+ "py-demo-blinker": {
+  "g": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру",
+    "platformVersion": "1.0"
+   },
+   "name": "g",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "py-demo-shallow-history": {
+  "g": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру",
+    "platformVersion": "1.0"
+   },
+   "name": "g",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry/\nLED1.on();\ntimer1.start(1000);",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off();\ntimer1.start(1000);",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "timer1.timeout/"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {
+     "shallowHistory": null
+    },
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ },
+ "py-demo-two-blinkers": {
+  "G": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "G",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry propagate/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()\ntimer1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "[condition]/ blabla"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  },
+  "O": {
+   "platform": "ArduinoUno",
+   "meta": {
+    "platform": "ArduinoUno",
+    "standardVersion": "1.0",
+    "name": "Arduino Blinker",
+    "author": "Lapki IDE TEAM",
+    "description": "Включение и выключение лампочки по таймеру"
+   },
+   "name": "Второй бликер!",
+   "states": {
+    "diod1": [
+     "Включен",
+     "entry propagate/\nLED1.on()\ntimer1.start(1000)",
+     null
+    ],
+    "diod2": [
+     "Выключен",
+     "entry/\nLED1.off()\ntimer1.start(1000)",
+     null
+    ]
+   },
+   "transitions": {
+    "init-edge": [
+     "init",
+     "diod1",
+     ""
+    ],
+    "edge3": [
+     "diod1",
+     "diod2",
+     "timer1.timeout/"
+    ],
+    "edge4": [
+     "diod2",
+     "diod1",
+     "[condition]/ blabla"
+    ]
+   },
+   "vertices": {
+    "initial_states": {
+     "init": null
+    },
+    "choices": {},
+    "finals": {},
+    "shallow_history": {},
+    "deep_history": {}
+   },
+   "components": {
+    "cLED1": [
+     "LED1",
+     "LED",
+     {
+      "name": "Светодиод",
+      "description": "Встроенный в плату светодиод, чтобы им мигать",
+      "pin": "12"
+     }
+    ],
+    "ctimer1": [
+     "timer1",
+     "Timer",
+     {
+      "name": "Таймер",
+      "description": "Программный таймер."
+     }
+    ]
+   }
+  }
+ }
+}

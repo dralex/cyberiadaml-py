@@ -29,10 +29,10 @@ other checkouts: their documents are kept as snapshots with the revision they we
 | `tests/conformance/` | the standard examples | positive: strict read, dump equals `.expected.txt`; write, strict re-read, same dump. Negative: strict read raises `CGMLError` with the requirement id of the example; permissive read reports it |
 | `tests/dialect/` | the Lapki corpus | permissive read: dump equals `.expected.txt`, repair findings equal `.repairs.txt`; strict read raises; the written document reads in strict mode |
 | `tests/contract/` | documents written by cyberiadaml-js from the same examples | strict read, dump equals the expected dump of the source example |
-| `tests/legacy/` | the 1.x interface | the 1.4 tests; the fields lapki-compiler reads on the demos and the Lapki corpus: `platform`, `meta.values['platformVersion']`, states with `parent` and raw `actions`, transitions, vertices, components |
+| `tests/legacy/` | the 1.x interface | the 1.4 tests; `lapki-compiler-view.json` — the fields lapki-compiler reads (`platform`, `meta.values`, states with `parent` and `actions`, transitions, vertices, components) for the 40 corpus documents, compared with cyberiadaml-py 1.4.1 when recorded (`python3 -m tests.legacy.test_contract`); the builder: standard output and the 1.x round trip |
 | `tests/cml/` | stage 3 | the read and write tiers against ported libcyberiadamlpp-py tests |
 
-The 1.4 tests of private methods (`_split_graph`) are replaced by the dialect tests of D-9.
+The 1.4 test of the private `_split_graph` is replaced by the dialect tests of D-9.
 
 ## Examples
 

@@ -54,6 +54,10 @@ What 1.5 changes in their content:
 | `CGMLBaseVertex.data` | always `None` | the vertex name |
 | `CGMLTransition.position` | read, never written | read and written |
 | `format` | `gFormat` as read | `Cyberiada-GraphML-1.0` |
+| `name` of an unnamed machine | `None` | the graph id |
+| ids repeated in another machine | read as they are | read as they are; written as `<machine id>::<id>` (nodes), `<id>#<N>` (edges) |
+| duplicate edge ids in one machine | one transition lost | `<id>#<N>` for the later ones |
+| function graphs | read and written | read and written after the state machines, outside the standard |
 
 Fields planned for 1.6 (additive, all optional): the submachine reference, `collapsed` and
 `formal_name` of states, typed `entry_points` / `exit_points`, the label rect and the source and
