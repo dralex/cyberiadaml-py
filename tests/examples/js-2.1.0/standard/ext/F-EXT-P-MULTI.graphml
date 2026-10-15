@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <data key="gFormat">Cyberiada-GraphML-1.0</data>
+  <key id="gFormat" for="graphml" attr.name="format" attr.type="string" />
+  <key id="dName" for="graph" attr.name="name" attr.type="string" />
+  <key id="dName" for="node" attr.name="name" attr.type="string" />
+  <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string" />
+  <key id="dNote" for="node" attr.name="note" attr.type="string" />
+  <key id="dVertex" for="node" attr.name="vertex" attr.type="string" />
+  <key id="dData" for="node" attr.name="data" attr.type="string" />
+  <key id="dData" for="edge" attr.name="data" attr.type="string" />
+  <graph id="G1" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">First</data>
+    <node id="nMeta">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_META</data>
+      <data key="dData">standardVersion/ 1.0</data>
+    </node>
+    <node id="cTimerA">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT timer1</data>
+      <data key="dData">type/ Timer</data>
+    </node>
+    <node id="an0">
+      <data key="dName">Idle</data>
+    </node>
+    <node id="an1">
+      <data key="dName">Working</data>
+    </node>
+    <node id="ainit">
+      <data key="dVertex">initial</data>
+    </node>
+    <edge id="ainit-an0" source="ainit" target="an0" />
+    <edge id="an0-an1" source="an0" target="an1">
+      <data key="dData">timer1.TIMEOUT/</data>
+    </edge>
+  </graph>
+  <graph id="G2" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">Second</data>
+    <node id="cTimerB">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT timer1</data>
+      <data key="dData">type/ Timer</data>
+    </node>
+    <node id="bn0">
+      <data key="dName">Idle</data>
+    </node>
+    <node id="bn1">
+      <data key="dName">Working</data>
+    </node>
+    <node id="binit">
+      <data key="dVertex">initial</data>
+    </node>
+    <edge id="binit-bn0" source="binit" target="bn0" />
+    <edge id="bn0-bn1" source="bn0" target="bn1">
+      <data key="dData">timer1.TIMEOUT/</data>
+    </edge>
+  </graph>
+</graphml>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <data key="gFormat">Cyberiada-GraphML-1.0</data>
+  <key id="gFormat" for="graphml" attr.name="format" attr.type="string" />
+  <key id="dName" for="graph" attr.name="name" attr.type="string" />
+  <key id="dName" for="node" attr.name="name" attr.type="string" />
+  <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string" />
+  <key id="dNote" for="node" attr.name="note" attr.type="string" />
+  <key id="dVertex" for="node" attr.name="vertex" attr.type="string" />
+  <key id="dData" for="node" attr.name="data" attr.type="string" />
+  <graph id="M1" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">First machine</data>
+    <node id="nMeta">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_META</data>
+      <data key="dData">standardVersion/ 1.0</data>
+    </node>
+    <node id="m1s">
+      <data key="dName">Idle</data>
+    </node>
+    <node id="m1i">
+      <data key="dVertex">initial</data>
+    </node>
+    <edge id="m1i-m1s#1" source="m1i" target="m1s" />
+  </graph>
+  <graph id="M2" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">Second machine</data>
+    <node id="m2s">
+      <data key="dName">Idle</data>
+    </node>
+    <node id="m2i">
+      <data key="dVertex">initial</data>
+    </node>
+    <edge id="m2i-m2s#1" source="m2i" target="m2s" />
+  </graph>
+</graphml>

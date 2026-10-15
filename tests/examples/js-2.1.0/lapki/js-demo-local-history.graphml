@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <data key="gFormat">Cyberiada-GraphML-1.0</data>
+  <key id="gFormat" for="graphml" attr.name="format" attr.type="string" />
+  <key id="dName" for="graph" attr.name="name" attr.type="string" />
+  <key id="dName" for="node" attr.name="name" attr.type="string" />
+  <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string" />
+  <key id="dRegion" for="graph" attr.name="region" attr.type="string" />
+  <key id="dGeometry" for="graph" attr.name="geometry" />
+  <key id="dGeometry" for="node" attr.name="geometry" />
+  <key id="dLabelGeometry" for="edge" attr.name="labelGeometry" />
+  <key id="dNote" for="node" attr.name="note" attr.type="string" />
+  <key id="dVertex" for="node" attr.name="vertex" attr.type="string" />
+  <key id="dData" for="node" attr.name="data" attr.type="string" />
+  <key id="dData" for="edge" attr.name="data" attr.type="string" />
+  <key id="dLapkiSchemePosition" for="node" attr.name="lapkiSchemePosition" attr.type="string" />
+  <graph id="MS1Button1" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">MS1Button1</data>
+    <data key="dGeometry">
+      <rect x="0" y="0" width="450" height="100" />
+    </data>
+    <node id="coreMeta">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_META</data>
+      <data key="dData">standardVersion/ 1.0
+
+platformVersion/ 1.0
+
+lapkiVisual/ true
+
+platform/ tjc-ms1-btn-a2</data>
+    </node>
+    <node id="cButton1">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Button1</data>
+      <data key="dData">type/ Button
+
+pin/ 1</data>
+      <data key="dLapkiSchemePosition">x/ 30
+
+y/ 30</data>
+    </node>
+    <node id="cButton2">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Button2</data>
+      <data key="dData">type/ Button
+
+pin/ 2</data>
+      <data key="dLapkiSchemePosition">x/ 30
+
+y/ 30</data>
+    </node>
+    <node id="cLED1">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT LED1</data>
+      <data key="dData">type/ LED
+
+pin/ 1</data>
+      <data key="dLapkiSchemePosition">x/ 30
+
+y/ 30</data>
+    </node>
+    <node id="cLED2">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT LED2</data>
+      <data key="dData">type/ LED
+
+pin/ 2</data>
+      <data key="dLapkiSchemePosition">x/ 30
+
+y/ 30</data>
+    </node>
+    <node id="cLED3">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT LED3</data>
+      <data key="dData">type/ LED
+
+pin/ 3</data>
+      <data key="dLapkiSchemePosition">x/ 30
+
+y/ 30</data>
+    </node>
+    <node id="ofqxuuiznezyoahpqlmy">
+      <data key="dName">Горит 1</data>
+      <data key="dGeometry">
+        <rect x="108.71478271484375" y="223.75005340576172" width="450" height="100" />
+      </data>
+      <data key="dData">entry/
+LED1.on();
+
+exit/
+LED1.off();</data>
+    </node>
+    <node id="hcqcbbmspgipyngbguxv">
+      <data key="dName">Меняем 2 и 3</data>
+      <data key="dGeometry">
+        <rect x="104.4295654296875" y="574.5001068115234" width="450" height="100" />
+      </data>
+      <data key="dData">exit/
+LED2.off();
+LED3.off();</data>
+      <graph id="hcqcbbmspgipyngbguxv::region">
+        <data key="dRegion" />
+        <node id="zyplpafjabvnapaghkey">
+          <data key="dName">Горит 2</data>
+          <data key="dGeometry">
+            <rect x="448.4800000000004" y="154.72000000000003" width="450" height="100" />
+          </data>
+          <data key="dData">entry/
+LED2.on();
+
+exit/
+LED2.off();</data>
+        </node>
+        <node id="hdajieyhsatjlysilhbe">
+          <data key="dName">Горит 3</data>
+          <data key="dGeometry">
+            <rect x="110" y="469" width="450" height="100" />
+          </data>
+          <data key="dData">entry/
+LED3.on();
+
+exit/
+LED3.off();</data>
+        </node>
+        <node id="ydohplvyvlfhexlwwwle">
+          <data key="dVertex">initial</data>
+          <data key="dName" />
+          <data key="dGeometry">
+            <point x="358.84000000000003" y="103.8" />
+          </data>
+        </node>
+        <node id="txeuquippxpuinnvttjo">
+          <data key="dVertex">shallowHistory</data>
+          <data key="dName">Локальная история</data>
+          <data key="dGeometry">
+            <point x="80" y="222" />
+          </data>
+        </node>
+        <node id="deepHistory">
+          <data key="dVertex">deepHistory</data>
+          <data key="dName">Глубокая история</data>
+          <data key="dGeometry">
+            <point x="80" y="222" />
+          </data>
+        </node>
+      </graph>
+    </node>
+    <node id="mbyhvnsifhyfqqskdamy">
+      <data key="dVertex">initial</data>
+      <data key="dName" />
+      <data key="dGeometry">
+        <point x="8.71478271484375" y="201.75005340576172" />
+      </data>
+    </node>
+    <edge id="xcnnmlbfzvqfggvigbkd" source="mbyhvnsifhyfqqskdamy" target="ofqxuuiznezyoahpqlmy" />
+    <edge id="kjnmnlaxovjfutctaoum" source="ydohplvyvlfhexlwwwle" target="zyplpafjabvnapaghkey" />
+    <edge id="fibgyigoupwsglatqcco" source="ofqxuuiznezyoahpqlmy" target="txeuquippxpuinnvttjo">
+      <data key="dData">Button1.clicked/</data>
+      <data key="dLabelGeometry">
+        <point x="-50.427825927734375" y="517.6250801086426" />
+      </data>
+    </edge>
+    <edge id="gqwhnbkydjxvjbdhfyvt" source="hcqcbbmspgipyngbguxv" target="ofqxuuiznezyoahpqlmy">
+      <data key="dData">Button1.clicked/</data>
+      <data key="dLabelGeometry">
+        <point x="584.5721740722656" y="410.6250801086426" />
+      </data>
+    </edge>
+    <edge id="zcopzhbckfqmslabhsox" source="zyplpafjabvnapaghkey" target="hdajieyhsatjlysilhbe">
+      <data key="dData">Button2.clicked/</data>
+      <data key="dLabelGeometry">
+        <point x="374" y="909.5" />
+      </data>
+    </edge>
+    <edge id="jphipomnlildxwnpefua" source="hdajieyhsatjlysilhbe" target="zyplpafjabvnapaghkey">
+      <data key="dData">Button2.clicked/</data>
+      <data key="dLabelGeometry">
+        <point x="640" y="911" />
+      </data>
+    </edge>
+    <edge id="wtszxvdsbchwpcstcxat" source="txeuquippxpuinnvttjo" target="zyplpafjabvnapaghkey">
+      <data key="dLabelGeometry">
+        <point x="318.5600000000003" y="775.2400000000011" />
+      </data>
+    </edge>
+  </graph>
+</graphml>

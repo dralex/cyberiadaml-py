@@ -47,7 +47,7 @@ DOCUMENTS = _documents()
 def test_the_documents_are_there():
     """Check the snapshot of the js-written documents is present."""
     assert WRITERS
-    assert len(DOCUMENTS) >= 71
+    assert len(DOCUMENTS) >= 71 * len(WRITERS)
 
 
 @pytest.mark.parametrize('writer,name', DOCUMENTS)

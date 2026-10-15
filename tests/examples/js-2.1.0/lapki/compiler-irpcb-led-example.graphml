@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <data key="gFormat">Cyberiada-GraphML-1.0</data>
+  <key id="gFormat" for="graphml" attr.name="format" attr.type="string" />
+  <key id="dName" for="graph" attr.name="name" attr.type="string" />
+  <key id="dName" for="node" attr.name="name" attr.type="string" />
+  <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string" />
+  <key id="dGeometry" for="graph" attr.name="geometry" />
+  <key id="dGeometry" for="node" attr.name="geometry" />
+  <key id="dLabelGeometry" for="edge" attr.name="labelGeometry" />
+  <key id="dNote" for="node" attr.name="note" attr.type="string" />
+  <key id="dVertex" for="node" attr.name="vertex" attr.type="string" />
+  <key id="dData" for="node" attr.name="data" attr.type="string" />
+  <key id="dData" for="edge" attr.name="data" attr.type="string" />
+  <key id="dLapkiSchemePosition" for="node" attr.name="lapkiSchemePosition" attr.type="string" />
+  <graph id="Machine1" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">Machine1</data>
+    <data key="dGeometry">
+      <rect x="0" y="0" width="450" height="100" />
+    </data>
+    <node id="coreMeta">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_META</data>
+      <data key="dData">standardVersion/ 1.0
+
+platform/ IRPCB
+
+platformVersion/ 1.0
+
+lapkiVisual/ true</data>
+    </node>
+    <node id="cLed1">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Led1</data>
+      <data key="dData">type/ Led
+
+Контакт/ LED_PWM4</data>
+      <data key="dLapkiSchemePosition">x/ 30
+
+y/ 30</data>
+    </node>
+    <node id="ztcldydpeocjcqgglcab">
+      <data key="dName">Включается</data>
+      <data key="dGeometry">
+        <rect x="-34.76214599609375" y="86.26456069946289" width="450" height="100" />
+      </data>
+      <data key="dData">entry/
+Led1.fadeIn(1500);</data>
+    </node>
+    <node id="mgaljvhjtpapgzwigdbg">
+      <data key="dName">Выключается</data>
+      <data key="dGeometry">
+        <rect x="-30.5242919921875" y="370.5291213989258" width="450" height="100" />
+      </data>
+      <data key="dData">entry/
+Led1.fadeOut(1500);</data>
+    </node>
+    <node id="msufiqwdptomgutgmasb">
+      <data key="dVertex">initial</data>
+      <data key="dGeometry">
+        <point x="-134.76214599609375" y="70.26456069946289" />
+      </data>
+    </node>
+    <edge id="zsmkbqvfpanquvbdvffz" source="msufiqwdptomgutgmasb" target="ztcldydpeocjcqgglcab" />
+    <edge id="pllxilqdfuslideziwqt" source="ztcldydpeocjcqgglcab" target="mgaljvhjtpapgzwigdbg">
+      <data key="dData">Led1.isReady/</data>
+      <data key="dLabelGeometry">
+        <point x="249.35678100585938" y="237.89684104919434" />
+      </data>
+    </edge>
+    <edge id="vjkyzsxwseivvcamhslw" source="mgaljvhjtpapgzwigdbg" target="ztcldydpeocjcqgglcab">
+      <data key="dData">Led1.isReady/</data>
+      <data key="dLabelGeometry">
+        <point x="-20.643218994140625" y="242.39684104919434" />
+      </data>
+    </edge>
+  </graph>
+</graphml>
