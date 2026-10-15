@@ -16,6 +16,10 @@ Changed:
 - entry and exit points are no longer in `unknown_vertexes`;
 - a transition with a `pivot` is written as a comment link.
 
+Fixed:
+- the `createdAt` check gives the same result in every Python version (3.10 took a timestamp
+  with `Z` for an error).
+
 ## Version 1.5.0 (unreleased)
 
 Added:
