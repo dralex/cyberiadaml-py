@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <data key="gFormat">Cyberiada-GraphML-1.0</data>
+  <key id="gFormat" for="graphml" attr.name="format" attr.type="string" />
+  <key id="dName" for="graph" attr.name="name" attr.type="string" />
+  <key id="dName" for="node" attr.name="name" attr.type="string" />
+  <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string" />
+  <key id="dRegion" for="graph" attr.name="region" attr.type="string" />
+  <key id="dGeometry" for="graph" attr.name="geometry" />
+  <key id="dGeometry" for="node" attr.name="geometry" />
+  <key id="dGeometry" for="edge" attr.name="geometry" />
+  <key id="dSourcePoint" for="edge" attr.name="sourcePoint" />
+  <key id="dTargetPoint" for="edge" attr.name="targetPoint" />
+  <key id="dLabelGeometry" for="edge" attr.name="labelGeometry" />
+  <key id="dNote" for="node" attr.name="note" attr.type="string" />
+  <key id="dVertex" for="node" attr.name="vertex" attr.type="string" />
+  <key id="dData" for="node" attr.name="data" attr.type="string" />
+  <key id="dData" for="edge" attr.name="data" attr.type="string" />
+  <graph id="G" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">SM-0</data>
+    <node id="nMeta">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_META</data>
+      <data key="dData">standardVersion/ 1.0
+
+geometry/ full
+
+name/ test-geometry-1
+
+transitionOrder/ actionFirst
+
+eventPropagation/ block</data>
+    </node>
+    <node id="node-0">
+      <data key="dName">node 0</data>
+      <data key="dGeometry">
+        <rect x="-5" y="-5" width="1000" height="450" />
+      </data>
+      <graph id="node-0:">
+        <data key="dRegion" />
+        <data key="dGeometry">
+          <rect x="10" y="10" width="980" height="430" />
+        </data>
+        <node id="node-0-0">
+          <data key="dName">node 0-0</data>
+          <data key="dGeometry">
+            <rect x="45" y="45" width="600" height="300" />
+          </data>
+          <graph id="node-0-0:">
+            <data key="dRegion" />
+            <data key="dGeometry">
+              <rect x="0" y="10" width="600" height="290" />
+            </data>
+            <node id="node-0-0-1">
+              <data key="dName">node 0-0-1</data>
+              <data key="dGeometry">
+                <rect x="50" y="90" width="300" height="150" />
+              </data>
+            </node>
+            <node id="node-0-0-2">
+              <data key="dName">node 0-0-2</data>
+              <data key="dGeometry">
+                <rect x="450" y="90" width="150" height="150" />
+              </data>
+            </node>
+            <node id="node-0-0-0">
+              <data key="dVertex">initial</data>
+              <data key="dGeometry">
+                <point x="200" y="70" />
+              </data>
+            </node>
+          </graph>
+        </node>
+        <node id="node-0-1">
+          <data key="dName">node 0-1</data>
+          <data key="dGeometry">
+            <rect x="795" y="145" width="150" height="150" />
+          </data>
+        </node>
+      </graph>
+    </node>
+    <edge id="edge-0" source="node-0-0-1" target="node-0-0-1">
+      <data key="dGeometry">
+        <point x="-25" y="75" />
+        <point x="-25" y="175" />
+        <point x="150" y="175" />
+      </data>
+      <data key="dSourcePoint">
+        <point x="0" y="75" />
+      </data>
+      <data key="dTargetPoint">
+        <point x="150" y="150" />
+      </data>
+    </edge>
+    <edge id="edge-1" source="node-0-0-0" target="node-0-0-1">
+      <data key="dSourcePoint">
+        <point x="0" y="0" />
+      </data>
+      <data key="dTargetPoint">
+        <point x="150" y="0" />
+      </data>
+    </edge>
+    <edge id="edge-2" source="node-0-0-1" target="node-0-0-2">
+      <data key="dData">LABEL/</data>
+      <data key="dLabelGeometry">
+        <point x="375" y="135" />
+      </data>
+      <data key="dSourcePoint">
+        <point x="300" y="105" />
+      </data>
+      <data key="dTargetPoint">
+        <point x="0" y="105" />
+      </data>
+    </edge>
+  </graph>
+</graphml>

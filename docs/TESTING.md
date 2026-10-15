@@ -28,7 +28,7 @@ other checkouts: their documents are kept as snapshots with the revision they we
 | `tests/unit/` | behaviour grammar (§6.8), metadata (§6.9), escaping (§5.2), ids, writer order, findings | small inline documents |
 | `tests/conformance/` | the standard examples | positive: strict read, dump equals `.expected.txt`; write, strict re-read, same dump. Negative: strict read raises `CGMLError` with the requirement id of the example; permissive read reports it |
 | `tests/dialect/` | the Lapki corpus | permissive read: dump equals `.expected.txt`, repair findings equal `.repairs.txt`; strict read raises; the written document reads in strict mode |
-| `tests/contract/` | documents written by cyberiadaml-js from the same examples | strict read, dump equals the expected dump of the source example |
+| `tests/contract/` | documents written by cyberiadaml-js (`exportGraphml`) from the same examples | strict read, the dump equals the one cyberiadaml-js recorded for the written document; the 1.x parser reads it |
 | `tests/legacy/` | the 1.x interface | the 1.4 tests; `lapki-compiler-view.json` — the fields lapki-compiler reads (`platform`, `meta.values`, states with `parent` and `actions`, transitions, vertices, components) for the 40 corpus documents, compared with cyberiadaml-py 1.4.1 when recorded (`python3 -m tests.legacy.test_contract`); the builder: standard output and the 1.x round trip |
 | `tests/cml/` | stage 3 | the read and write tiers against ported libcyberiadamlpp-py tests |
 
@@ -43,8 +43,12 @@ writes the source revision to `tests/examples/REVISION`. A snapshot change is a 
 own; the differences of the expected dumps are reviewed in it. The examples keep the licences of
 their sources, listed in `tests/examples/README.md`.
 
-The js-written documents are produced in the cyberiadaml-js checkout of the pinned version and
-copied into `tests/examples/js-<version>/` the same way.
+The js-written documents are produced in the cyberiadaml-js checkout of the pinned version:
+
+    npm run build && node tools/write-contract.mjs ~/sources/cyberiadaml-py/tests/examples
+
+writes `tests/examples/js-<version>/` with a `manifest.json` naming the cyberiadaml-js revision and
+the examples it read.
 
 ## Running
 

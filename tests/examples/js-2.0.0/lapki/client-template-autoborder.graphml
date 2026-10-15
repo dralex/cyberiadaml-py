@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <data key="gFormat">Cyberiada-GraphML-1.0</data>
+  <key id="gFormat" for="graphml" attr.name="format" attr.type="string" />
+  <key id="dName" for="graph" attr.name="name" attr.type="string" />
+  <key id="dName" for="node" attr.name="name" attr.type="string" />
+  <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string" />
+  <key id="dRegion" for="graph" attr.name="region" attr.type="string" />
+  <key id="dGeometry" for="graph" attr.name="geometry" />
+  <key id="dGeometry" for="node" attr.name="geometry" />
+  <key id="dLabelGeometry" for="edge" attr.name="labelGeometry" />
+  <key id="dNote" for="node" attr.name="note" attr.type="string" />
+  <key id="dVertex" for="node" attr.name="vertex" attr.type="string" />
+  <key id="dData" for="node" attr.name="data" attr.type="string" />
+  <key id="dData" for="edge" attr.name="data" attr.type="string" />
+  <key id="dColor" for="edge" attr.name="color" attr.type="string" />
+  <graph id="G" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">G</data>
+    <data key="dGeometry">
+      <rect x="0" y="0" width="450" height="100" />
+    </data>
+    <node id="coreMeta">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_META</data>
+      <data key="dData">standardVersion/ 1.0
+
+platform/ BearlogaDefend-Autoborder
+
+platformVersion/ 1.0
+
+lapkiVisual/ true</data>
+    </node>
+    <node id="n0">
+      <data key="dName">Бой</data>
+      <data key="dGeometry">
+        <rect x="-786" y="-492" width="517" height="770" />
+      </data>
+      <data key="dData">entry/
+
+exit/</data>
+      <graph id="n0::region">
+        <data key="dRegion" />
+        <node id="n0::n1">
+          <data key="dName">Сближение</data>
+          <data key="dGeometry">
+            <rect x="49.29999999999994" y="168.4499999999999" width="413" height="208" />
+          </data>
+          <data key="dData">entry/
+Navigation.MoveToTarget()
+
+exit/</data>
+        </node>
+        <node id="n0::n2">
+          <data key="dName">Атака</data>
+          <data key="dGeometry">
+            <rect x="56.599999999999994" y="443.95000000000016" width="413" height="208" />
+          </data>
+          <data key="dData">entry/
+Weapon.Activate()
+
+exit/</data>
+        </node>
+      </graph>
+    </node>
+    <node id="n3">
+      <data key="dName">Скан</data>
+      <data key="dGeometry">
+        <rect x="-1573" y="-738" width="413" height="288" />
+      </data>
+      <data key="dData">entry/
+Scaner.FindRivalByDistance(min)
+
+exit/
+Scaner.Stop()</data>
+    </node>
+    <node id="ucqaehdydqejwjkobkax">
+      <data key="dVertex">initial</data>
+      <data key="dGeometry">
+        <point x="-1673" y="-838" />
+      </data>
+    </node>
+    <edge id="xahmjixxndyajicaidfv" source="n0" target="n3">
+      <data key="dData">TargetAnalyser.Lost/</data>
+      <data key="dLabelGeometry">
+        <point x="-1178" y="-515" />
+      </data>
+      <data key="dColor">#EBC3D9</data>
+    </edge>
+    <edge id="ibjwlpwztesdkheqymbe" source="n0" target="n3">
+      <data key="dData">TargetAnalyser.Destroyed/</data>
+      <data key="dLabelGeometry">
+        <point x="-766.55" y="-694.7" />
+      </data>
+      <data key="dColor">#4387C4</data>
+    </edge>
+    <edge id="jxzqcesbtbzpcqqlfsbl" source="n3" target="n0::n1">
+      <data key="dData">Scaner.TargetAcquired/</data>
+      <data key="dLabelGeometry">
+        <point x="-1307.8499999999995" y="-184.30000000000032" />
+      </data>
+      <data key="dColor">#5acfde</data>
+    </edge>
+    <edge id="xuxnxwkdnkhwtehpqcak" source="n0::n1" target="n0::n2">
+      <data key="dData">Weapon.TargetEnteredRange/</data>
+      <data key="dLabelGeometry">
+        <point x="-732.0500000000001" y="-147.59999999999994" />
+      </data>
+      <data key="dColor">#39BC32</data>
+    </edge>
+    <edge id="qzwxffcdvmfzpncpvsae" source="n0::n2" target="n0::n1">
+      <data key="dData">Weapon.TargetLeftRange/</data>
+      <data key="dLabelGeometry">
+        <point x="-471.0500000000002" y="-148.75000000000006" />
+      </data>
+      <data key="dColor">#94DBBD</data>
+    </edge>
+    <edge id="uwbqqjnbyjovjbsfuhxq" source="ucqaehdydqejwjkobkax" target="n3" />
+  </graph>
+</graphml>

@@ -8,6 +8,8 @@ revision is in `REVISION`. A refresh is a commit of its own.
   requirement they break;
 * `lapki/` - the Lapki dialect corpus: documents, expected repairs and dumps, see
   `lapki/README.md`.
+* `js-<version>/` - the same examples written by cyberiadaml-js (`tools/write-contract.mjs` of
+  that library), with the dumps it gives for them; see its `README.md`.
 
 Licences: `standard/` comes from cyberiadaml-compat-tests under the GNU General Public License
 (version 3); the `lapki/` documents keep the licences of their repositories, listed in

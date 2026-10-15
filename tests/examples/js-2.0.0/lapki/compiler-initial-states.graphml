@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <data key="gFormat">Cyberiada-GraphML-1.0</data>
+  <key id="gFormat" for="graphml" attr.name="format" attr.type="string" />
+  <key id="dName" for="graph" attr.name="name" attr.type="string" />
+  <key id="dName" for="node" attr.name="name" attr.type="string" />
+  <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string" />
+  <key id="dRegion" for="graph" attr.name="region" attr.type="string" />
+  <key id="dGeometry" for="node" attr.name="geometry" />
+  <key id="dLabelGeometry" for="edge" attr.name="labelGeometry" />
+  <key id="dNote" for="node" attr.name="note" attr.type="string" />
+  <key id="dVertex" for="node" attr.name="vertex" attr.type="string" />
+  <key id="dData" for="node" attr.name="data" attr.type="string" />
+  <key id="dData" for="edge" attr.name="data" attr.type="string" />
+  <key id="dColor" for="node" attr.name="color" attr.type="string" />
+  <key id="dColor" for="edge" attr.name="color" attr.type="string" />
+  <graph id="Ga" edgedefault="directed">
+    <data key="dStateMachine" />
+    <data key="dName">Ga</data>
+    <node id="coreMeta">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_META</data>
+      <data key="dData">standardVersion/ 1.0
+
+platform/ ArduinoUno
+
+platformVersion/ 1.0</data>
+    </node>
+    <node id="cTimer1">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Timer1</data>
+      <data key="dData">type/ Timer</data>
+    </node>
+    <node id="cQHsmSerial">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT QHsmSerial</data>
+      <data key="dData">type/ QHsmSerial
+
+baud/ 9600</data>
+    </node>
+    <node id="ytpqqvuajpnczvfnuquc">
+      <data key="dName">Главное состояние</data>
+      <data key="dGeometry">
+        <rect x="9" y="194.8125" width="450" height="95" />
+      </data>
+      <data key="dData">entry/
+Timer1.start(5000);
+QHsmSerial::println("Вошли в главное состояние");</data>
+      <data key="dColor">#FFFFFF</data>
+      <graph id="ytpqqvuajpnczvfnuquc::region">
+        <data key="dRegion" />
+        <node id="vmbpwwemcyqyywuqbiby">
+          <data key="dName">Подсостояние</data>
+          <data key="dGeometry">
+            <rect x="100" y="100" width="450" height="95" />
+          </data>
+          <data key="dData">entry/
+QHsmSerial::println("Вошли в подсостояние");</data>
+          <data key="dColor">#FFFFFF</data>
+        </node>
+        <node id="ipujuzkssjjanlpuhxdk">
+          <data key="dVertex">initial</data>
+          <data key="dGeometry">
+            <point x="0" y="0" />
+          </data>
+        </node>
+      </graph>
+    </node>
+    <node id="gvuxfwblozjgixwcmvkw">
+      <data key="dName">Состояние</data>
+      <data key="dGeometry">
+        <rect x="60.06000000000021" y="709.3431250000006" width="450" height="95" />
+      </data>
+      <data key="dData">entry/
+Timer1.start(5000);
+QHsmSerial::println("Вошли во второе состояние");</data>
+      <data key="dColor">#FFFFFF</data>
+    </node>
+    <node id="mqnudktinpiciufanqnn">
+      <data key="dVertex">initial</data>
+      <data key="dGeometry">
+        <point x="-91" y="94.8125" />
+      </data>
+    </node>
+    <edge id="flfmuxehplsazwkjbbvx" source="mqnudktinpiciufanqnn" target="ytpqqvuajpnczvfnuquc">
+      <data key="dData">/
+QHsmSerial::println("Глобальное начальное состояние!");</data>
+    </edge>
+    <edge id="lvgfxuugwxdkcxhdkqyb" source="ipujuzkssjjanlpuhxdk" target="vmbpwwemcyqyywuqbiby">
+      <data key="dData">/
+QHsmSerial::println("Дочернее начальное состояние!");</data>
+    </edge>
+    <edge id="ibbzkehwwxzoxplaedsw" source="ytpqqvuajpnczvfnuquc" target="gvuxfwblozjgixwcmvkw">
+      <data key="dData">Timer1.timeout/</data>
+      <data key="dLabelGeometry">
+        <point x="74.26000000000009" y="565.7878125000004" />
+      </data>
+      <data key="dColor">#FFFFFF</data>
+    </edge>
+    <edge id="fwquhlcpeketzecywgte" source="gvuxfwblozjgixwcmvkw" target="ytpqqvuajpnczvfnuquc">
+      <data key="dData">Timer1.timeout/</data>
+      <data key="dLabelGeometry">
+        <point x="321.1500000000001" y="564.9615625" />
+      </data>
+      <data key="dColor">#FFFFFF</data>
+    </edge>
+  </graph>
+</graphml>
