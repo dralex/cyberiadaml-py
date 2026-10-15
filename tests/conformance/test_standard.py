@@ -83,3 +83,13 @@ def test_negative_permissive_read_reports(name):
         findings = error.findings
     repaired = [f for f in findings if f.layer == 0]
     assert repaired or MANIFEST[name]['reject'] in _cited(findings)
+
+
+@pytest.mark.parametrize('name', POSITIVE)
+def test_positive_round_trip(name):
+    """Check write and a strict re-read give the same canonical dump."""
+    document = core.read(_data(name), strict=True)
+    again = core.read(core.write(document), strict=True)
+    expected = (EXAMPLES / (name + '.expected.txt')).read_text(
+        encoding='utf-8')
+    assert core.dump(again) == expected

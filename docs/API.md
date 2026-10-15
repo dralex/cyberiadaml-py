@@ -67,7 +67,8 @@ target points of transitions, `markup` of comments, `formal_name` of machines.
   document. Strict: no dialect repairs, any ERROR finding raises. Permissive: dialect repairs,
   only fatal findings raise. Raises `core.CGMLError`.
 * `core.write(document: core.Document) -> str` - writes a standard document; raises
-  `core.CGMLError` when the result breaks a MUST rule (from the writer step of 1.5).
+  `core.CGMLError` when the result breaks a MUST rule (the writer reads its output back in the
+  strict mode).
 * `core.dump(document: core.Document) -> str` - the canonical dump of the validator
   specification §7.
 

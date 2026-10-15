@@ -30,9 +30,10 @@ from .model import (Comment, CommentLink, Document, Extension, KeyDecl,
                     Node, Point, Rect, Region, State, StateMachine,
                     SubmachineState, Transition, Vertex)
 from .reader import CGMLError, read
+from .writer import write
 
 __all__ = [
-    'read', 'dump', 'CGMLError', 'FORMAT_STANDARD', 'FORMAT_LAPKI',
+    'read', 'write', 'dump', 'CGMLError', 'FORMAT_STANDARD', 'FORMAT_LAPKI',
     'ERROR', 'WARNING', 'INFO', 'Finding', 'Block', 'Param', 'Comment',
     'CommentLink', 'Document', 'Extension', 'KeyDecl', 'Node', 'Point',
     'Rect', 'Region', 'State', 'StateMachine', 'SubmachineState',

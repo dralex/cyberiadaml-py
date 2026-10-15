@@ -14,6 +14,29 @@ The documentation is located in the `docs` directory and contains:
 * The interface specification - `API.md`
 * The testing - `TESTING.md`
 
+## Usage
+
+The standard-compliant core reads standard documents and, in the permissive mode, the
+pre-standard Lapki dialect:
+
+    from cyberiadaml_py import core
+
+    document = core.read(text)                 # core.read(text, strict=True)
+    print(document.label, document.findings)
+    text = core.write(document)                # a standard document
+    print(core.dump(document))                 # the canonical dump
+
+The 1.x interface (`CGMLParser`, `CGMLBuilder`) stays as it was.
+
+## Tests
+
+    python3 -m pytest
+    flake8 cyberiadaml_py tests
+    mypy cyberiadaml_py && mypy tests
+
+The tests read the conformance examples and the Lapki dialect corpus kept in `tests/examples`
+(see `docs/TESTING.md`).
+
 ## Requirements
 
 * `poetry` (which installs latter libraries)

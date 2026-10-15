@@ -69,3 +69,17 @@ def test_strict_read_rejects(name):
     """Check the strict read rejects a dialect document."""
     with pytest.raises(core.CGMLError):
         core.read(_data(name), strict=True)
+
+
+@pytest.mark.parametrize('name', sorted(DOCUMENTS))
+def test_written_document_is_standard(name):
+    """Check the writer gives a standard document or refuses an invalid."""
+    document = core.read(_data(name))
+    if DOCUMENTS[name]['status'] != 'valid':
+        with pytest.raises(core.CGMLError):
+            core.write(document)
+        return
+    again = core.read(core.write(document), strict=True)
+    assert again.label == core.FORMAT_STANDARD
+    assert core.dump(again) == (
+        CORPUS / (name + '.expected.txt')).read_text(encoding='utf-8')
