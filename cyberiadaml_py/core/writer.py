@@ -81,9 +81,10 @@ class _Writer:
                 elem = copy.deepcopy(ext.elem)
                 elem.tail = None
                 parent.append(elem)
-                if (ext.key, kind) not in self.used:
+                # a key-less data is copied as it is, the re-read refuses it
+                if ext.key is not None and (ext.key, kind) not in self.used:
                     self.used.append((ext.key, kind))
-            else:
+            elif ext.key is not None:
                 self.data(parent, kind, ext.key, ext.text)
 
     def keys(self, root: ET.Element) -> None:

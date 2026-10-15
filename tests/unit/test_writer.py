@@ -141,6 +141,15 @@ def test_broken_model_is_refused():
     assert 'CGML-6.3-2' in {f.req for f in error.value.findings}
 
 
+def test_keyless_data_is_refused():
+    """Check a data without a key read permissively is refused, no crash."""
+    document = core.read(minimal(machines=COMPOSITE.replace(
+        '<data key="dLapkiFlag">on</data>', '<data>on</data>')))
+    with pytest.raises(core.CGMLError) as error:
+        core.write(document)
+    assert 'CGML-5.5-3' in {f.req for f in error.value.findings}
+
+
 def test_key_declarations():
     """Check declared keys are kept, missing extension keys declared."""
     document = core.read(minimal(keys=KEYS + FLAG_KEY, machines=COMPOSITE),
