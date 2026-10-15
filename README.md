@@ -39,9 +39,8 @@ The tests read the conformance examples and the Lapki dialect corpus kept in `te
 
 ## Requirements
 
-* `poetry` (which installs latter libraries)
-* `xmltodict`
-* `pydantic`
-* `types-xmltodict`
+* Python 3.10 or newer - the core uses the standard library only
+* `pydantic` - the 1.x types
+* `poetry` - the development environment with the test and lint tools
 
 **Github: https://github.com/kruzhok-team/cyberiadaml-py**
