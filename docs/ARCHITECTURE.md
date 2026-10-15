@@ -1,0 +1,164 @@
+# cyberiadaml-py Architecture
+
+The library reads and writes CyberiadaML-GraphML documents (PNST 1044-2025) in pure Python. Since
+1.5 it is built around a standard-compliant core that depends on the Python standard library only;
+the 1.x interface (`CGMLParser`, `CGMLBuilder`, `CGMLElements`) stays as a facade over the core, so
+lapki-compiler and other 1.x users keep working. The core also reads the pre-standard Lapki dialect
+(see `CyberiadaML-GraphML-1.0-LAPKI-DIALECT.md` of cyberiadaml-compat-tests).
+
+```
+       lapki-compiler, 1.x users                         compat driver, tools
+                   |                                               |
+                   | parse_cgml(text)                              | read(data)
+                   | build(elements)                               | write(doc), dump(doc)
+                   v                                               v
+  cyberiadaml_parser.py, ..._builder.py           core/__init__.py
+ +----------------------------------+            +----------------------------------+
+ |  1.x facade                      | -- read -> |  core                            |
+ |  CGMLParser, CGMLBuilder         | <- model - |  reader: xmlload, dialect,       |
+ |  types/ (pydantic, 1.x names)    | -- write ->|    tagtree, model, checks        |
+ |                                  |            |  writer, dump, findings, rules   |
+ +----------------------------------+            +----------------------------------+
+```
+
+The core is a port of `cgmlval` (cyberiadaml-compat-tests), the reference validator of the
+standard: the same layers, rules, requirement ids and canonical dump. It is a copy, not a
+dependency — the library is LGPL-3 and pip-installable on its own; the conformance tests keep the
+two in step (see `TESTING.md`).
+
+## Reading
+
+```
+ xmlload.py          dialect.py          tagtree.py          model.py            checks_l3/l4.py
+ +--------------+    +--------------+    +--------------+    +--------------+    +--------------+
+ |  L1 XML parse|    |  D-1 ... D-9 |    |  L2 tag tree |    |  model build |    |  L3 values   |
+ |  bytes > tree| -> |  non-strict  | -> |  walk        | -> |  Document    | -> |  L4 integrity|
+ |  line numbers|    |  only        |    |              |    |              |    |              |
+ +--------------+    +--------------+    +--------------+    +--------------+    +--------------+
+         |                   |                   |                   |                   |
+         +-------------------+-------------------+-------------------+-------------------+
+                                                 | findings
+                                                 v
+                               Document.findings, or CGMLError
+```
+
+Every check reports a finding — rule name, requirement id (`CGML-<clause>-<n>` or
+`LAPKI-D<n>`), layer, severity, message, line. The mode decides what stops reading:
+
+| | strict | permissive (default) |
+|---|---|---|
+| dialect pass | off | on |
+| ERROR finding | `CGMLError`, reading stops at its layer | kept in `Document.findings` |
+| fatal finding | `CGMLError` | `CGMLError` |
+| WARNING, INFO | kept | kept |
+
+A finding is fatal when no model can be formed: a document that is not well-formed XML, a root
+other than `graphml`, no state machine graph, an element without an id, a duplicate id the dialect
+pass does not repair. Elements the permissive reader cannot place (a foreign tag, an edge to an
+unknown node) are skipped and named in their finding.
+
+The document format label is `Cyberiada-GraphML-1.0`, or `Cyberiada-GraphML-Lapki` when a dialect
+repair fired or the metadata has `lapkiVisual`.
+
+## The document model
+
+```
+ Document --- format, keys[], meta, findings[]
+    |
+    +-- StateMachine* --- id, name, formal_name, geometry, params, extensions
+           |
+           +-- nodes: State | SubmachineState | Vertex | Comment           (top region)
+           |     State --- name, actions, blocks[], geometry, color, collapsed
+           |       +-- Region* --- id, name, formal_name, geometry, nodes
+           |     SubmachineState --- ref, points region (EntryPoint/ExitPoint vertices)
+           |     Vertex --- kind, name, geometry, color
+           |     Comment --- kind (formal|informal), name, body, markup, geometry, color
+           +-- transitions: Transition* --- source, target, actions, blocks[], polyline,
+           |                                source/target point, label geometry, color
+           +-- links: CommentLink* --- source, target (node or edge), pivot, chunk
+```
+
+- every element keeps its parent, its source line and its `extensions` — the `data` items of
+  declared non-standard keys, in document order, written back as they came;
+- `actions` keeps the behaviour text verbatim, `blocks` is its parse (§6.8: triggers, guards,
+  `propagate`/`block`/`defer`, `entry`/`exit`/`do`, `else`); text that does not parse keeps its
+  findings and an empty `blocks`;
+- `meta` is the ordered parameter list of the document metadata; `StateMachine.params` holds the
+  per-machine parameters of the Lapki dialect (D-1), never written by the standard writer;
+- geometry is `Point` or `Rect` of floats, exactly as read; nothing is invented.
+
+The model covers the whole standard from 1.5 on — it comes with the validator port. The stages of
+the development plan concern the writer paths, the 1.x facade and the claimed profiles:
+
+| stage | release | adds |
+|---|---|---|
+| 1 | 1.5.0 | CORE profile read and write; Lapki dialect; extension elements kept and written back |
+| 2 | 1.6.0 | submachines + entry/exit points, collapsed, comment→transition links, full geometry, markup, formal names: writer rules, 1.x fields, all four profiles |
+| 3 | 1.7.0 | `cyberiadaml_py.cml` — the libcyberiadamlpp-py interface over the same core |
+
+## Writing
+
+`core/writer.py` writes a model as a standard document:
+
+- `gFormat` `Cyberiada-GraphML-1.0` first, then the key declarations of appendix Б for the keys in
+  use and the declarations of the extension keys;
+- one `graph` per machine with `edgedefault="directed"`; the metadata node first in the first
+  machine and nowhere else; the edges of a machine as one block at its end (§5.8.2);
+- the `data` of an element in the appendix А order (`dNote`, `dSubmachineState`, `dVertex` first
+  where the standard requires it), extensions after them, child graphs last;
+- region graph ids from the model; a region without one gets `<state id>::region`;
+- geometry and text as in the model; text escaping by the XML serializer (§5.2).
+
+The writer never repairs: a model that breaks a MUST rule (e.g. a transition to a missing node)
+raises `CGMLError` with the findings of a check run over the result.
+
+## The 1.x facade
+
+`CGMLParser.parse_cgml` reads in permissive mode and fills the 1.x types from the model;
+`CGMLBuilder.build` turns 1.x types into a model and writes it. Names and fields stay; what they
+now carry:
+
+| 1.x field | from the model |
+|---|---|
+| `CGMLElements.format` | `Cyberiada-GraphML-1.0` (the dialect label is a core notion) |
+| `CGMLElements.keys` | declared keys by `for`, extension keys included |
+| `CGMLElements.functions` | the `dFunction` graphs (D-9) |
+| `CGMLStateMachine.meta.values`, `platform`, `standard_version` | the document metadata overlaid with the machine parameters (D-1) — every machine gets them |
+| `CGMLStateMachine.states` | states and submachine states by id; `parent` is the enclosing state, regions are not visible |
+| `CGMLState.actions`, `CGMLTransition.actions` | the behaviour text verbatim (lapki-compiler parses it itself) |
+| `CGMLStateMachine.transitions` | transitions only — comment links are no longer transitions |
+| `CGMLStateMachine.components` | `CGML_COMPONENT <id>` comments by node id: `id`, `type`, the other parameters |
+| `CGMLStateMachine.notes` | the other comments, formal and informal; `position` a `Point`, a `Rectangle` or `None` |
+| vertex dictionaries | by kind; `data` is the vertex name; entry/exit points in `unknown_vertexes` until 1.6 |
+| `unknown_datanodes` | the extension `data` items |
+
+`CGMLBuilder` writes the metadata once, from the first machine, and the comments with their own
+kind. Errors of both reach the caller as `CGMLParserException` / `CGMLBuilderException`, never as
+a pydantic or XML library error.
+
+## Code layout
+
+```
+cyberiadaml_py/
+  __init__.py              1.x exports
+  cyberiadaml_parser.py    CGMLParser — facade
+  cyberiadaml_builder.py   CGMLBuilder — facade
+  types/                   1.x types (pydantic dataclasses)
+  core/
+    __init__.py            read(), write(), dump(), CGMLError, the model classes
+    findings.py rules.py requirements.py
+    xmlload.py dialect.py tagtree.py model.py checks_l3.py checks_l4.py
+    actions.py meta.py keys.py
+    writer.py dump.py
+  cml/                     stage 3
+```
+
+## Dependencies
+
+The core uses the standard library only (`xml.parsers.expat`, `xml.etree.ElementTree`). The 1.x
+types keep `pydantic`; `xmltodict` is no longer used. Python 3.10 or newer.
+
+## Testing
+
+The test layers, the snapshots of the conformance and dialect corpora and the 1.x contract tests
+are described in `TESTING.md`.
