@@ -171,6 +171,14 @@ cyberiadaml_py/
 The core uses the standard library only (`xml.parsers.expat`, `xml.etree.ElementTree`). The 1.x
 types keep `pydantic`; `xmltodict` is no longer used. Python 3.10 or newer.
 
+## Licences
+
+The library is distributed under the LGPL-3 (`LICENSE`), its documentation under the GFDL 1.3.
+The core is a port of `cgmlval`, which cyberiadaml-compat-tests distributes under the GPL-3; its
+author contributes the port to this library under the LGPL-3. The test examples
+(`tests/examples/`) keep the licences of their sources, named in their README files; they are
+not part of the package.
+
 ## Testing
 
 The test layers, the snapshots of the conformance and dialect corpora and the 1.x contract tests

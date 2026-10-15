@@ -11,6 +11,7 @@ Added:
   corpus and the lapki-compiler contract.
 
 Changed:
+- the package metadata names the licence: LGPL-3.0-or-later.
 - `CGMLParser` and `CGMLBuilder` work over the core; the 1.x types keep their names and fields.
 - the reader accepts the standard documents: `platform` is optional, a comment may have no
   geometry (`CGMLNote.position` may be `None`), formal comments are notes, comment links are

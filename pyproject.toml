@@ -3,6 +3,7 @@ name = "cyberiadaml-py"
 version = "1.5.0"
 description = "The Python 3 library for processing the CyberiadaML state machine graphs"
 authors = ["L140-beep <kartoshka0302@mail.ru>"]
+license = "LGPL-3.0-or-later"
 readme = "README.md"
 
 [tool.poetry.dependencies]
