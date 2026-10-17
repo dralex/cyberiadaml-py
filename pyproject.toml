@@ -28,3 +28,10 @@ build-backend = "poetry.core.masonry.api"
 import-order-style="pep8"
 inline-quotes = "single"
 ignore=["D107", "W504", "F403", "F401"]
+# the cml methods are the binding's, documented in docs/CML.md
+per-file-ignores = ["cyberiadaml_py/cml/*.py:D102,D105"]
+# copies of the libcyberiadamlpp-py tests, kept as they are
+exclude = ["tests/cml/binding", ".venv"]
+
+[tool.mypy]
+exclude = ["tests/cml/binding/"]

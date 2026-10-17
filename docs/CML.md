@@ -89,6 +89,31 @@ The core reads the document (permissive, or `strict=True`); `cml/reader.py` buil
 - **Errors**: not well-formed XML → `XMLException`; a metadata finding → `MetainfoException`;
   any other refusing finding → `CybMLException`; a missing or unreadable file → `FileException`.
 
+- **Lenient reading** keeps the standard findings, but refuses what the binding refuses in its
+  non-strict mode: broken XML structure and keys, a missing or wrong `gFormat`, dangling ends,
+  two initials, bad pivots and chunks, a missing or unparsable `CGML_META`, a bad propagation
+  value, foreign tags (`LENIENT_REFUSED` in `cml/reader.py`, found on the conformance examples);
+  an event name must be words, spaces and dots with one argument, and a state block needs `/`,
+  as the binding's grammar wants.
+
+### Differences from the binding
+
+Checked with `tests/cml/binding-view.json` (the binding's dumps of the 131 examples) and with the
+consumers' own tests run on both:
+
+| | binding | `cml` |
+|---|---|---|
+| a Lapki component repaired by the dialect | the rest of the body as written | the body written from its parameters |
+| `format_str` of a document | `-Lapki` by its own patterns | `-Lapki` when a dialect repair fired (not the legacy `transitionFirst`, repeated ids or parameters alone) |
+| strict mode, `gFormat` not first | read | refused (the core checks it) |
+| strict mode, a broken Lapki document | `MetainfoException` (the metadata is checked first) | `CybMLException` |
+| a node with a vertex kind and a submachine reference | the submachine state | the vertex |
+| a yEd document | read | `NotImplementedException` |
+
+The consumers: hsm-dispatcher-py (31 scenarios, 39 diagrams), hsm-to-python, the
+hsm_robot_ros_generator packages, `cybersphere check` give the same output on every Cyberiada
+document; their yEd examples need the binding.
+
 ## Writing
 
 `cml/writer.py` turns the tree into a core model and writes it with `core.write` (a strict

@@ -50,6 +50,10 @@ The js-written documents are produced in the cyberiadaml-js checkout of the pinn
 writes `tests/examples/js-<version>/` with a `manifest.json` naming the cyberiadaml-js revision and
 the examples it read.
 
+The binding's view of the examples is recorded with the binding importable:
+
+    LD_LIBRARY_PATH=<libs> PYTHONPATH=<binding build> python3 tools/record_binding_view.py
+
 ## Running
 
     poetry install
