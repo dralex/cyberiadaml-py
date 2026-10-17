@@ -49,7 +49,13 @@ class Action:
             self._type = ActionType(values['type'])
             self._behavior = values.get('behavior', '')
         else:
-            self.update(*args, **kwargs)
+            fields = ('trigger', 'guard', 'behavior', 'propagation')
+            values = dict(zip(fields, args), **kwargs)
+            self._trigger = values.get('trigger', '')
+            self._guard = values.get('guard', '')
+            self._behavior = values.get('behavior', '')
+            self._propagation = EventPropagation(
+                values.get('propagation', eventPropagationNone))
 
     def get_type(self) -> ActionType:
         return self._type
@@ -89,6 +95,9 @@ class Action:
             return
         names = ('trigger', 'guard', 'behavior', 'propagation')
         values = dict(zip(names, args), **kwargs)
+        if self._type == actionTransition and not any(
+                values.get(name) for name in names[:3]):
+            return  # the C++ refuses a fully empty transition action
         self._trigger = values.get('trigger', '')
         self._guard = values.get('guard', '')
         self._behavior = values.get('behavior', '')

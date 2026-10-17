@@ -21,7 +21,7 @@
 # -----------------------------------------------------------------------------
 """Reading: the core model as the element tree of the binding."""
 import re
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from .. import core
 from . import errors
@@ -31,7 +31,8 @@ from .elements import (Choice, Comment, CommentSubject, ConnectionPoint,
                        Element, ElementCollection, Final, History, Initial,
                        State, StateMachine, SubmachineState, Terminate,
                        Transition)
-from .enums import (DocumentGeometryFormat, actionEntry, actionExit,
+from .enums import (DocumentGeometryFormat, EventPropagation,
+                    actionEntry, actionExit,
                     commentSubjectData, commentSubjectElement,
                     commentSubjectName, docEventPropagationBlock,
                     docEventPropagationNone, docEventPropagationPropagate,
@@ -68,11 +69,16 @@ LENIENT_REFUSED = frozenset((
     'pivot-value', 'points-first-region', 'region-marker-required',
     'single-initial', 'submachine-subgraph', 'tag-tree',
     'transition-endpoints', 'unique-data-keys', 'vertex-value'))
+# an undeclared extension key the binding skips (key-declarations)
+UNDECLARED_KEY = 'data key '
 # the comment link errors the binding meets as a failed internal check
 ASSERTED = frozenset(('chunk-required', 'link-target-kind'))
 # the event names the binding reads: words, spaces and dots, one argument
 TRIGGER = re.compile(r'\w((\w| |\.)*\w)?(\(\w+\))?\Z')
 LAPKI_HINT = 'lapkiVisual'
+# the Arena documents carry this key (the libcyberiadaml Arena dialect)
+ARENA = re.compile(r'<data\s[^>]*key\s*=\s*["\']referenceGraphID["\']')
+FORMAT_ARENA = 'Cyberiada-GraphML-Arena'
 
 
 def _rstrip(text: Optional[str]) -> Optional[str]:
@@ -98,6 +104,18 @@ def _trigger(block, node: bool) -> str:
         raise errors.error(errors.CybMLException,
                            "Bad action '%s'" % block.verbatim)
     return trigger
+
+
+def _event(block, node: bool) -> Tuple[str, EventPropagation]:
+    """Return the trigger and the propagation of an event block."""
+    trigger = _trigger(block, node)
+    if block.param:
+        return trigger, PROPAGATIONS[block.param]
+    # the C library also takes a keyword ending the trigger ('EV defer/')
+    for word, value in PROPAGATIONS.items():
+        if trigger.endswith(' ' + word):
+            return trigger[:-len(word)].strip(), value
+    return trigger, EventPropagation(eventPropagationNone)
 
 
 def _legacy(finding) -> bool:
@@ -155,7 +173,7 @@ def _error(findings: list, text: str, strict: bool) -> errors.Exception:
     if not findings:
         return errors.error(errors.CybMLException, 'the document is wrong')
     first = findings[0]
-    if first.layer == 1:
+    if first.layer == 1 or first.rule == 'root-graphml':
         return errors.error(errors.XMLException, first.message)
     # the binding checks the metainformation first; a missing CGML_META
     # next to other errors is their consequence
@@ -342,9 +360,9 @@ class _Reader:
                     continue
                 actions.append(Action(KEYWORDS[kind], behavior))
                 continue
-            actions.append(Action(_trigger(block, True), _guard(block.guard),
-                                  _behavior(block), PROPAGATIONS.get(
-                                      block.param, eventPropagationNone)))
+            trigger, propagation = _event(block, True)
+            actions.append(Action(trigger, _guard(block.guard),
+                                  _behavior(block), propagation))
         if self.skip_empty_actions:
             actions = [a for a in actions
                        if a.get_behavior() or a.get_guard()]
@@ -384,9 +402,9 @@ class _Reader:
         if block.kind != 'event':
             raise errors.error(errors.CybMLException, 'Transitions cannot '
                                'contain entry/exit activities')
-        return Action(_trigger(block, False), _guard(block.guard),
-                      _behavior(block), PROPAGATIONS.get(
-                          block.param, eventPropagationNone))
+        trigger, propagation = _event(block, False)
+        return Action(trigger, _guard(block.guard), _behavior(block),
+                      propagation)
 
     def link(self, edge) -> None:
         comment = self.elements.get(self.ident(edge.source))
@@ -456,12 +474,17 @@ def read(doc: Document, text: str, gf: DocumentGeometryFormat,
     except core.CGMLError as err:
         raise _error(err.findings, text, strict) from None
     refused = [f for f in document.findings if f.severity == core.ERROR and
-               f.rule in LENIENT_REFUSED]
+               f.rule in LENIENT_REFUSED and not (
+                   f.rule == 'key-declarations' and
+                   f.message.startswith(UNDECLARED_KEY))]
     if refused:
         raise _error(refused, text, strict)
-    if gf == geometryFormatQt and _has_geometry(document):
+    arena = ARENA.search(text) is not None
+    if gf != geometryFormatNone and _has_geometry(document) and (
+            arena or gf == geometryFormatQt):
         raise errors.error(errors.NotImplementedException,
-                           'the Qt geometry format')
+                           'the Arena geometry' if arena
+                           else 'the Qt geometry format')
     if document.meta_comment is None and not skip_meta_format:
         raise errors.error(errors.MetainfoException,
                            'No CGML_META formal comment in the document')
@@ -483,4 +506,6 @@ def read(doc: Document, text: str, gf: DocumentGeometryFormat,
         reader.simplify_ids()
     if reader.geometry and _has_geometry(document):
         doc._geometry_format = DocumentGeometryFormat(gf)
+    if arena:
+        return FORMAT_ARENA
     return core.FORMAT_STANDARD if skip_meta_format else _label(document)

@@ -1,0 +1,5 @@
+LocalDocument: {Document: {id: '', name: '', geometry format: none, meta: {standard version: '1.0', transition order: action first, event propagation: block events}, elements: {State Machine: {id: 'G0', name: 'SM', elements: {Formal Comment: {id: 'nMeta', name: 'CGML_META', body: 'standardVersion/ 1.0
+
+transitionOrder/ actionFirst
+
+eventPropagation/ block'}, Simple State: {id: 'n0', name: 'A'}, Simple State: {id: 'n1', name: 'B'}, Transition: {id: 'n0-n1', type: loc, source: 'n0', target: 'n1', action: {trigger: 'GO'}}}}}}, file: 'tests/65-transition-color.py.graphml', format: cyberiada, format_str: 'Cyberiada-GraphML-1.0'}

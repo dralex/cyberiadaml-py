@@ -1,0 +1,12 @@
+LocalDocument: {Document: {id: '', name: '', geometry format: none, meta: {standard version: '1.0', target: 'autoboarder', platform: 'Arena', platformVersion: '0.8.6'}, elements: {State Machine: {id: 'g0', name: 'Автобортник', elements: {Formal Comment: {id: 'n0', name: 'CGML_META', body: 'standardVersion/ 1.0
+
+target/ autoboarder
+
+platform/ Arena
+
+platformVersion/ 0.8.6'}, Simple State: {id: 'n1', name: 'Скан', actions: {a {entry, behavior: 'Сенсор.ПоискВрагаПоДистанции(min)
+Движение.ЗадатьКоординатуВверх(350)
+Движение.ДвигатьсяПоКоординатам()'}, a {exit, behavior: 'Сенсор.ОстановкаПоиска()
+Движение.СбросКоординат()
+Движение.Стоп()'}}}, Initial: {id: 'n2', name: 'INIT'}, Composite State: {id: 'n3', name: 'Бой', elements: {Simple State: {id: 'n3::n0::n0', name: 'Сближение', actions: {a {entry, behavior: 'Движение.ДвигатьсяКЦели()'}}}, Simple State: {id: 'n3::n0::n1', name: 'Атака', actions: {a {entry, behavior: 'ОружиеЦелевое.АтаковатьЦель()
+Движение.Стоп()'}}}}}, Transition: {id: 'n2-n1', type: loc, source: 'n2', target: 'n1'}, Transition: {id: 'n1-n3::n0::n0', type: loc, source: 'n1', target: 'n3::n0::n0', action: {trigger: 'Сенсор.ЦельПолучена'}}, Transition: {id: 'n3-n1', type: loc, source: 'n3', target: 'n1', action: {trigger: 'АнализаторЦели.ЦельПотеряна'}}, Transition: {id: 'n3::n0::n0-n3::n0::n1', type: loc, source: 'n3::n0::n0', target: 'n3::n0::n1', action: {trigger: 'ОружиеЦелевое.ЦельВошлаВЗонуАтаки'}}, Transition: {id: 'n3::n0::n1-n3::n0::n0', type: loc, source: 'n3::n0::n1', target: 'n3::n0::n0', action: {trigger: 'ОружиеЦелевое.ЦельВышлаИзЗоныАтаки'}}, Transition: {id: 'n3-n1#0', type: loc, source: 'n3', target: 'n1', action: {trigger: 'АнализаторЦели.ЦельУничтожена'}}}}}}, file: 'tests/32-simplify-identifiers.py-input.graphml', format: cyberiada, format_str: 'Cyberiada-GraphML-Arena'}

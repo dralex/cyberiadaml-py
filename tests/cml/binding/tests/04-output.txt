@@ -1,0 +1,41 @@
+Document: {id: '', name: 'Test document', geometry format: none, meta: {standard version: '1.0', platform: 'Berloga', platformVersion: '1.4', platformLanguage: 'script', target: 'Unit', name: 'Test document', author: 'Author', contact: 'platform@kruzhok.org', description: '1
+2
+3', version: '0.1', date: '2024-04-14T11:22:00', markupLanguage: 'html', transition order: exit first, event propagation: propagate events}, elements: {State Machine: {id: 'G0', name: 'SM', elements: {Formal Comment: {id: 'nMeta', name: 'CGML_META', body: 'standardVersion/ 1.0
+
+platform/ Berloga
+
+platformVersion/ 1.4
+
+platformLanguage/ script
+
+target/ Unit
+
+name/ Test document
+
+author/ Author
+
+contact/ platform@kruzhok.org
+
+description/ 1
+2
+3
+
+version/ 0.1
+
+date/ 2024-04-14T11:22:00
+
+markupLanguage/ html
+
+transitionOrder/ exitFirst
+
+eventPropagation/ propagate'}}}}}
+Document: {id: '', name: '', geometry format: none, meta: {standard version: '1.0', transition order: action first, event propagation: block events}, elements: {State Machine: {id: 'g0', name: 'Автобортник', elements: {Formal Comment: {id: 'n0', name: 'CGML_META', body: 'standardVersion/ 1.0
+
+transitionOrder/ actionFirst
+
+eventPropagation/ block'}, Simple State: {id: 'n1', name: 'Скан', actions: {a {entry, behavior: 'Сенсор.ПоискВрагаПоДистанции(min)
+Движение.ЗадатьКоординатуВверх(350)
+Движение.ДвигатьсяПоКоординатам()'}, a {exit, behavior: 'Сенсор.ОстановкаПоиска()
+Движение.СбросКоординат()
+Движение.Стоп()'}}}, Initial: {id: 'n2', name: 'INIT'}, Composite State: {id: 'n3', name: 'Бой', elements: {Simple State: {id: 'n3::n0::n0', name: 'Сближение', actions: {a {entry, behavior: 'Движение.ДвигатьсяКЦели()'}}}, Simple State: {id: 'n3::n0::n1', name: 'Атака', actions: {a {entry, behavior: 'ОружиеЦелевое.АтаковатьЦель()
+Движение.Стоп()'}}}}}, Transition: {id: 'n2-n1', type: loc, source: 'n2', target: 'n1'}, Transition: {id: 'n1-n3::n0::n0', type: loc, source: 'n1', target: 'n3::n0::n0', action: {trigger: 'Сенсор.ЦельПолучена'}}, Transition: {id: 'n3-n1', type: loc, source: 'n3', target: 'n1', action: {trigger: 'АнализаторЦели.ЦельПотеряна'}}, Transition: {id: 'n3::n0::n0-n3::n0::n1', type: loc, source: 'n3::n0::n0', target: 'n3::n0::n1', action: {trigger: 'ОружиеЦелевое.ЦельВошлаВЗонуАтаки'}}, Transition: {id: 'n3::n0::n1-n3::n0::n0', type: loc, source: 'n3::n0::n1', target: 'n3::n0::n0', action: {trigger: 'ОружиеЦелевое.ЦельВышлаИзЗоныАтаки'}}, Transition: {id: 'n3-n1#0', type: loc, source: 'n3', target: 'n1', action: {trigger: 'АнализаторЦели.ЦельУничтожена'}}}}}}

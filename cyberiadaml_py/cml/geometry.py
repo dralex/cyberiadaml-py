@@ -20,8 +20,12 @@
 #
 # -----------------------------------------------------------------------------
 """The geometry values: Point, Rect and Polyline."""
-import math
-from typing import Iterable, List, Optional
+from typing import Any, Iterable, List, Optional
+
+# the tolerance of Rect.almost_equal (the C++ EQUAL_DIFF)
+EQUAL_DIFF = 0.001
+# the value of geometryFormatQt (the rects are centred there)
+QT_FORMAT = 3
 
 
 def number(value: float) -> str:
@@ -29,9 +33,9 @@ def number(value: float) -> str:
     return format(value, 'g')
 
 
-def round_half_away(value: float) -> float:
-    """Return the value rounded as the C library rounds it."""
-    return math.copysign(math.floor(abs(value) + 0.5), value)
+def truncate(value: float) -> float:
+    """Return the value rounded as the C++ round() does: truncated."""
+    return float(int(value))
 
 
 class Point:
@@ -44,7 +48,8 @@ class Point:
         self.y = float(y) if y is not None else 0.0
 
     def round(self) -> None:
-        self.x, self.y = round_half_away(self.x), round_half_away(self.y)
+        if self.valid:
+            self.x, self.y = truncate(self.x), truncate(self.y)
 
     def copy(self) -> 'Point':
         return Point(self.x, self.y) if self.valid else Point()
@@ -68,9 +73,51 @@ class Rect:
         self.height = float(height) if height is not None else 0.0
 
     def round(self) -> None:
-        self.x, self.y = round_half_away(self.x), round_half_away(self.y)
-        self.width = round_half_away(self.width)
-        self.height = round_half_away(self.height)
+        if self.valid:
+            self.x, self.y = truncate(self.x), truncate(self.y)
+            self.width = truncate(self.width)
+            self.height = truncate(self.height)
+
+    def almost_equal(self, other: 'Rect') -> bool:
+        if not self.valid or not other.valid:
+            return self.valid == other.valid
+        return all(abs(a - b) < EQUAL_DIFF for a, b in (
+            (self.x, other.x), (self.y, other.y),
+            (self.width, other.width), (self.height, other.height)))
+
+    def expand(self, value: Any, document: Any) -> None:
+        """Grow to hold a point, a rect or a polyline of the document."""
+        qt = int(document.get_geometry_format()) == QT_FORMAT
+        if isinstance(value, Polyline):
+            for point in value:
+                self.expand(point, document)
+        elif isinstance(value, Rect):
+            if not value.valid:
+                return
+            if not self.valid:
+                self.__init__(value.x, value.y,  # type: ignore[misc]
+                              value.width, value.height)
+            elif qt:
+                half_w, half_h = value.width / 2.0, value.height / 2.0
+                self.expand(Point(value.x - half_w, value.y - half_h),
+                            document)
+                self.expand(Point(value.x + half_w, value.y + half_h),
+                            document)
+            else:
+                self.expand(Point(value.x, value.y), document)
+                self.expand(Point(value.x + value.width,
+                                  value.y + value.height), document)
+        elif value.valid:
+            if not self.valid:
+                self.__init__(value.x, value.y, 0, 0)  # type: ignore[misc]
+            elif qt:
+                self.x, self.width = _grow_centred(self.x, self.width,
+                                                   value.x)
+                self.y, self.height = _grow_centred(self.y, self.height,
+                                                    value.y)
+            else:
+                self.x, self.width = _grow(self.x, self.width, value.x)
+                self.y, self.height = _grow(self.y, self.height, value.y)
 
     def copy(self) -> 'Rect':
         if not self.valid:
@@ -94,6 +141,25 @@ class Rect:
             return '()'
         return '(%s; %s; %s; %s)' % (number(self.x), number(self.y),
                                      number(self.width), number(self.height))
+
+
+def _grow_centred(centre: float, size: float, value: float):
+    half = size / 2.0
+    if value < centre - half:
+        delta = centre - half - value
+        return centre - delta / 2.0, size + delta
+    if value > centre + half:
+        delta = value - centre - half
+        return centre + delta / 2.0, size + delta
+    return centre, size
+
+
+def _grow(start: float, size: float, value: float):
+    if value < start:
+        return value, size + start - value
+    if value > start + size:
+        return start, value - start
+    return start, size
 
 
 class Polyline:

@@ -1,5 +1,16 @@
 # cyberiadaml-py project changelog
 
+## Version 1.7.0 (unreleased)
+
+Added:
+- `cyberiadaml_py.cml`: the interface of the `CyberiadaML` module (libcyberiadamlpp-py) in pure
+  Python, over the core - reading (`open`, `decode`, the element tree, the queries, the dump),
+  building (the `new_*` factories, `Action`, edits, copies, comment subjects) and writing
+  (`encode`, `save`, `save_as`) of the documents in the Cyberiada format; the Qt geometry, the
+  layout and the yEd formats raise `NotImplementedException` (`docs/CML.md`).
+- the tests of the interface: the libcyberiadamlpp-py scripts of these tiers, the binding's
+  dumps of the examples, the writer tests.
+
 ## Version 1.6.0 (unreleased)
 
 Added:

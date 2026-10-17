@@ -1,0 +1,10 @@
+children: 6
+elements: 14
+first: nMeta
+last: n2-n0
+deep: Parent 0::Subparent 0-1::State 0-1-0
+deep2: Parent 0::Subparent 0-1::State 0-1-1
+vertexes: 9
+substates: 'State 0-0' 'Subparent 0-1' 'State 0-1-0' 'State 0-1-1'
+comments: 2 transitions: 1
+const comments: 2 const transitions: 1

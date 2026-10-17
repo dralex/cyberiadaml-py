@@ -20,10 +20,15 @@
 #
 # -----------------------------------------------------------------------------
 """The element tree: the classes of the binding with its getters and dump."""
+import copy as copying
 from typing import Iterable, List, Optional
 
+from . import errors
 from .actions import Action
 from .enums import (CommentSubjectType, ElementType, TransitionType,
+                    actionTransition, adiffActions, adiffArguments,
+                    adiffGuards, adiffNumber, adiffOrder, adiffPropagation,
+                    adiffTypes,
                     commentSubjectData, commentSubjectElement,
                     commentSubjectName, elementChoice, elementComment,
                     elementCompositeState, elementDeepHistory,
@@ -69,6 +74,91 @@ def _point(value: Optional[Point]) -> Point:
 
 def _rect(value: Optional[Rect]) -> Rect:
     return value.copy() if value is not None else Rect()
+
+
+def _subtree(element: 'Element') -> List['Element']:
+    result = [element]
+    for child in getattr(element, '_children', []):
+        result.extend(_subtree(child))
+    return result
+
+
+# the action types of the C library are bits, for the types mask
+ACTION_BITS = {0: 0x1, 1: 0x2, 2: 0x4}
+
+
+def _arguments_differ(command1: str, command2: str) -> bool:
+    bracket = False
+    for char1, char2 in zip(command1, command2):
+        if char1 == char2:
+            if not bracket and char1 == '(':
+                bracket = True
+        elif not bracket:
+            return False
+        else:
+            return True
+    return False
+
+
+def _compare_behaviors(behavior1: str, behavior2: str) -> int:
+    commands1 = behavior1.split('\n')
+    commands2 = behavior2.split('\n')
+    flags = adiffActions if len(commands1) != len(commands2) else 0
+    for i, command in enumerate(commands1):
+        for j, other in enumerate(commands2):
+            if not other:
+                continue
+            if command == other:
+                if i != j:
+                    flags |= adiffOrder
+                commands2[j] = ''
+                break
+            if _arguments_differ(command, other):
+                flags |= adiffArguments
+                commands2[j] = ''
+    if any(commands2):
+        flags |= adiffActions
+    return flags
+
+
+def compare_action_lists(list1: List[Action], list2: List[Action]) -> int:
+    """Return the adiff flags of two action lists, as the C library does."""
+    list1 = [a for a in list1 if not a.is_empty_transition() or
+             a.get_type() != actionTransition]
+    list2 = [a for a in list2 if not a.is_empty_transition() or
+             a.get_type() != actionTransition]
+    if not list1 and not list2:
+        return 0
+    if not list1 or not list2:
+        return adiffActions | adiffTypes | adiffNumber
+    flags = adiffNumber if len(list1) != len(list2) else 0
+    types1 = types2 = 0
+    for action in list1:
+        types1 |= ACTION_BITS[int(action.get_type())]
+    for action in list2:
+        types2 |= ACTION_BITS[int(action.get_type())]
+    if types1 != types2:
+        flags |= adiffTypes
+    for a1 in list1:
+        found = False
+        for a2 in list2:
+            if a1.get_type() != a2.get_type() or \
+                    (a2.get_type() == actionTransition and
+                     a1.get_trigger() != a2.get_trigger()):
+                continue
+            if a1.get_guard() == a2.get_guard():
+                found = True
+                if a1.get_propagation() != a2.get_propagation():
+                    flags |= adiffPropagation
+                if a1.get_behavior() != a2.get_behavior():
+                    flags |= _compare_behaviors(a1.get_behavior(),
+                                                a2.get_behavior())
+                break
+            if a1.get_behavior() == a2.get_behavior():
+                flags |= adiffGuards
+        if not found:
+            return flags | adiffActions
+    return flags
 
 
 class Element:
@@ -144,6 +234,40 @@ class Element:
     def has_geometry(self) -> bool:
         return False
 
+    def set_id(self, id_: str) -> None:
+        self._id = id_
+
+    def set_name(self, name: str) -> None:
+        self._name = name
+
+    def set_formal_name(self, name: str) -> None:
+        self._formal_name = name
+        if self._name is None:
+            self._name = name
+
+    def clean_geometry(self) -> None:
+        pass
+
+    def round_geometry(self) -> None:
+        pass
+
+    def copy(self, parent: Optional['Element']) -> 'Element':
+        """Return a detached deep copy with the same ids under parent."""
+        # the subjects keep the targets outside the copy, as the C++ does
+        inside = {id(element) for element in _subtree(self)}
+        memo = {id(self._parent): parent}
+        for element in _subtree(self):
+            for subject in getattr(element, '_subjects', []):
+                if id(subject._element) not in inside:
+                    memo.setdefault(id(subject._element), subject._element)
+        result = copying.deepcopy(self, memo)
+        result._parent = parent
+        return result
+
+    def get_bound_rect(self, *args) -> Rect:
+        raise errors.error(errors.NotImplementedException,
+                           'the bounding rect')
+
     def _prefix(self) -> str:
         text = "%s: {id: '%s'" % (TYPE_NAMES[self._type], self._id)
         if self._name is not None:
@@ -212,8 +336,21 @@ class CommentSubject:
     def has_geometry_polyline(self) -> bool:
         return len(self._polyline) > 0
 
+    def get_bound_rect(self, *args) -> Rect:
+        raise errors.error(errors.NotImplementedException,
+                           'the bounding rect')
+
     def get_geometry_polyline(self) -> Polyline:
         return self._polyline
+
+    def clean_geometry(self) -> None:
+        self._source, self._target = Point(), Point()
+        self._polyline = Polyline()
+
+    def round_geometry(self) -> None:
+        self._source.round()
+        self._target.round()
+        self._polyline.round()
 
     def __repr__(self) -> str:
         text = "{id: '%s', type: %s" % (self._id, SUBJECT_NAMES[self._type])
@@ -291,6 +428,52 @@ class Comment(Element):
     def get_subjects(self) -> List[CommentSubject]:
         return self._subjects
 
+    def set_body(self, body: str) -> None:
+        self._body = body
+
+    def update_geometry(self, rect: Rect) -> None:
+        self._rect = rect.copy()
+
+    def clean_geometry(self) -> None:
+        self._rect = Rect()
+        for subject in self._subjects:
+            subject.clean_geometry()
+
+    def round_geometry(self) -> None:
+        self._rect.round()
+        for subject in self._subjects:
+            subject.round_geometry()
+
+    def add_subject(self, subject: CommentSubject) -> CommentSubject:
+        self._subjects.append(copying.copy(subject))
+        return self._subjects[-1]
+
+    def remove_subject(self, *args) -> None:
+        if len(args) == 1 and not isinstance(args[0], CommentSubjectType):
+            index = args[0]
+            if not 0 <= index < len(self._subjects):
+                raise errors.error(errors.ParametersException,
+                                   'Bad subject index %d' % index)
+            del self._subjects[index]
+            return
+        kind, fragment = args
+        for index, subject in enumerate(self._subjects):
+            if subject.get_type() == kind and \
+                    subject.get_fragment() == fragment:
+                del self._subjects[index]
+                return
+        raise errors.error(errors.NotFoundException,
+                           'No subject with the fragment %s' % fragment)
+
+    def rebind_subjects(self, root: 'ElementCollection') -> None:
+        for subject in self._subjects:
+            target = subject._element.get_id()
+            element = root.find_element_by_id(target)
+            if element is None and root.get_id() == target:
+                element = root
+            if element is not None:
+                subject._element = element
+
     def __repr__(self) -> str:
         text = self._prefix() + ", body: '%s'" % self._body
         if self._rect.valid:
@@ -316,6 +499,15 @@ class Vertex(Element):
 
     def has_geometry(self) -> bool:
         return self._point.valid
+
+    def update_geometry(self, point: Point) -> None:
+        self._point = point.copy()
+
+    def clean_geometry(self) -> None:
+        self._point = Point()
+
+    def round_geometry(self) -> None:
+        self._point.round()
 
     def __repr__(self) -> str:
         text = self._prefix()
@@ -412,6 +604,15 @@ class Choice(Pseudostate):
     def has_color(self) -> bool:
         return bool(self._color)
 
+    def update_geometry(self, rect: Rect) -> None:  # type: ignore[override]
+        self._rect = rect.copy()
+
+    def clean_geometry(self) -> None:
+        self._rect = Rect()
+
+    def round_geometry(self) -> None:
+        self._rect.round()
+
     def __repr__(self) -> str:
         text = self._prefix()
         if self._rect.valid:
@@ -503,6 +704,34 @@ class Transition(Element):
 
     def get_geometry_label_rect(self) -> Rect:
         return self._label_rect
+
+    def compare_actions(self, transition: 'Transition') -> int:
+        return compare_action_lists([self._action], [transition._action])
+
+    def update(self, *args) -> None:
+        if len(args) == 1:
+            self._polyline = args[0].copy()
+        elif isinstance(args[0], str):
+            self._source, self._target = args
+        else:
+            self._sp, self._tp = args[0].copy(), args[1].copy()
+
+    def update_label(self, label) -> None:
+        if isinstance(label, Rect):
+            self._label_point = Point()
+            self._label_rect = label.copy()
+        else:
+            self._label_rect = Rect()
+            self._label_point = label.copy()
+
+    def clean_geometry(self) -> None:
+        self._sp, self._tp, self._label_point = Point(), Point(), Point()
+        self._label_rect, self._polyline = Rect(), Polyline()
+
+    def round_geometry(self) -> None:
+        for value in (self._sp, self._tp, self._label_point,
+                      self._label_rect, self._polyline):
+            value.round()
 
     def __repr__(self) -> str:
         text = self._prefix() + ', type: %s' % (
@@ -605,6 +834,48 @@ class ElementCollection(Element):
     def get_vertexes(self) -> List[Element]:
         return self.find_elements_by_types(VERTEX_TYPES)
 
+    def _check_child(self, element: Element) -> None:
+        if not isinstance(element, Element):
+            raise TypeError('an Element is expected')
+        if element._parent is not self:
+            raise errors.error(errors.AssertException,
+                               'the element is created for another parent')
+
+    def add_element(self, element: Element) -> None:
+        self._check_child(element)
+        self._attach(element)
+
+    def add_first_element(self, element: Element) -> None:
+        self._check_child(element)
+        self._children.insert(0, element)
+
+    def remove_element(self, id_: str) -> None:
+        for index, child in enumerate(self._children):
+            if child.get_id() == id_:
+                del self._children[index]
+                break
+
+    def clear(self) -> None:
+        self._children = []
+
+    def rebind_subjects(self, root: 'ElementCollection') -> None:
+        for element in _subtree(self):
+            if isinstance(element, Comment):
+                element.rebind_subjects(root)
+
+    def update_geometry(self, rect: Rect) -> None:
+        self._rect = rect.copy()
+
+    def clean_geometry(self) -> None:
+        self._rect = Rect()
+        for child in self._children:
+            child.clean_geometry()
+
+    def round_geometry(self) -> None:
+        self._rect.round()
+        for child in self._children:
+            child.round_geometry()
+
     def has_initial(self) -> bool:
         return any(e.get_type() == elementInitial for e in self._children)
 
@@ -680,6 +951,69 @@ class State(ElementCollection):
     def get_region_geometry_rect(self) -> Rect:
         return self._region_rect.copy()
 
+    def update_region_geometry_rect(self, rect: Rect) -> None:
+        self._region_rect = rect.copy()
+
+    def set_collapsed(self, flag: bool) -> None:
+        self._collapsed = bool(flag)
+
+    def remove_element(self, id_: str) -> None:
+        super().remove_element(id_)
+        self._update_type()
+
+    def clear(self) -> None:
+        super().clear()
+        self._update_type()
+
+    def add_first_element(self, element: Element) -> None:
+        super().add_first_element(element)
+        self._update_type()
+
+    def add_action(self, action: Action) -> None:
+        if not isinstance(action, Action):
+            raise TypeError('an Action is expected')
+        if action.is_empty_transition():
+            raise errors.error(errors.ParametersException,
+                               'Empty transition action is not allowed')
+        if action.get_type() != actionTransition and action.has_guard():
+            raise errors.error(errors.ParametersException, 'Guards are not '
+                               'allowed for entry/exit activities')
+        self._actions.append(action.copy())
+
+    def set_actions(self, actions: Iterable[Action]) -> None:
+        actions = list(actions)
+        if not all(isinstance(action, Action) for action in actions):
+            # the binding's list conversion fails this way
+            raise RuntimeError('Unable to cast the list item to Action')
+        saved = self._actions
+        self._actions = []
+        try:
+            for action in actions:
+                self.add_action(action)
+        except BaseException:
+            self._actions = saved
+            raise
+
+    def clear_actions(self) -> None:
+        self._actions = []
+
+    def remove_action(self, index: int) -> None:
+        if not 0 <= index < len(self._actions):
+            raise errors.error(errors.ParametersException,
+                               'Bad action index %d' % index)
+        del self._actions[index]
+
+    def compare_actions(self, state: 'State') -> int:
+        return compare_action_lists(self._actions, state._actions)
+
+    def clean_geometry(self) -> None:
+        self._region_rect = Rect()
+        super().clean_geometry()
+
+    def round_geometry(self) -> None:
+        self._region_rect.round()
+        super().round_geometry()
+
     def __repr__(self) -> str:
         text = self._prefix()
         if self._actions:
@@ -707,17 +1041,47 @@ class SubmachineState(State):
     def get_submachine_reference(self) -> str:
         return self._reference
 
+    def set_submachine_reference(self, reference: str) -> None:
+        self._reference = reference
+
     def __repr__(self) -> str:
         return self._prefix() + ", submachine: '%s'" % self._reference + \
             self._collection() + '}'
 
 
 class StateMachine(ElementCollection):
-    """StateMachine(parent, id, name='', rect=Rect())."""
+    """StateMachine(parent, id, name='', rect=Rect()) or StateMachine(sm)."""
 
-    def __init__(self, parent: Optional[Element], id_: str, name: str = '',
+    def __init__(self, parent, id_: str = '', name: str = '',
                  rect: Optional[Rect] = None) -> None:
+        if isinstance(parent, StateMachine):
+            source = parent.copy(parent._parent)
+            self.__dict__.update(source.__dict__)
+            for child in self._children:
+                child._parent = self
+            return
         super().__init__(parent, ElementType.elementSM, id_, name, rect)
+
+    def check_isomorphism(self, machine: 'StateMachine',
+                          ignore_comments: bool = True,
+                          require_initial: bool = False) -> int:
+        """Return smiIdentical for an identical machine; no more."""
+        from .enums import smiIdentical
+
+        def text(sm: 'StateMachine') -> str:
+            copy = sm.copy(None)
+            if ignore_comments:
+                for element in _subtree(copy):
+                    if isinstance(element, ElementCollection):
+                        element._children = [
+                            c for c in element._children
+                            if c.get_type() not in COMMENT_TYPES]
+            return repr(copy)
+
+        if text(self) == text(machine):
+            return smiIdentical
+        raise errors.error(errors.NotImplementedException,
+                           'the isomorphism of different machines')
 
     def get_comments(self) -> List[Element]:
         return self.find_elements_by_types(COMMENT_TYPES)

@@ -1,0 +1,4 @@
+Document: {id: '', name: '', geometry format: none, meta: {standard version: '1.0'}, elements: {State Machine: {id: 'G', name: 'No parameters SM', elements: {Formal Comment: {id: 'nMeta', name: 'CGML_META', body: 'standardVersion/ 1.0'}, Simple State: {id: 'n0', name: 'First state'}, Simple State: {id: 'n1', name: 'Second state'}, Transition: {id: 't0', type: loc, source: 'n0', target: 'n1', action: {trigger: 'EVENT'}}}}}}
+Document: {id: '', name: '', geometry format: none, meta: {standard version: '1.0', transition order: exit first}, elements: {State Machine: {id: 'G', name: 'Exit first SM', elements: {Formal Comment: {id: 'nMeta', name: 'CGML_META', body: 'standardVersion/ 1.0
+
+transitionOrder/ exitFirst'}, Simple State: {id: 'n0', name: 'First state'}, Simple State: {id: 'n1', name: 'Second state'}, Transition: {id: 't0', type: loc, source: 'n0', target: 'n1', action: {trigger: 'EVENT'}}}}}}
