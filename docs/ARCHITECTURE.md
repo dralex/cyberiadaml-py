@@ -149,6 +149,20 @@ machine is written as `<machine id>::<id>`, a repeated edge id as `<id>#<N>`. Fu
 outside the standard, are written after the state machines. Errors of both reach the caller as
 `CGMLParserException` / `CGMLBuilderException`, never as a pydantic or XML library error.
 
+## The CyberiadaML interface
+
+```
+ CyberiadaML-style program --> cml.Document / LocalDocument
+                                  | decode/open            encode/save |
+                                  v                                    ^
+                         cml/reader.py: core model -> element tree     cml/writer.py
+                                  ^                                    |
+                         core.read(strict)                     core.write
+```
+
+`cml` is a second facade over the same core, with the names and the behaviour of the
+libcyberiadamlpp-py binding — the element tree, the action texts, the dump; see `CML.md`.
+
 ## Code layout
 
 ```
@@ -163,7 +177,12 @@ cyberiadaml_py/
     xmlload.py dialect.py tagtree.py model.py checks_l3.py checks_l4.py
     actions.py meta.py keys.py
     writer.py dump.py
-  cml/                     stage 3
+  cml/                     the CyberiadaML interface (CML.md)
+    __init__.py            the binding's names
+    enums.py errors.py geometry.py actions.py
+    elements.py document.py
+    reader.py              core model -> element tree
+    writer.py              element tree -> core model
 ```
 
 ## Dependencies

@@ -12,6 +12,7 @@ The documentation is located in the `docs` directory and contains:
 
 * The architecture - `ARCHITECTURE.md`
 * The interface specification - `API.md`
+* The CyberiadaML interface - `CML.md`
 * The testing - `TESTING.md`
 
 ## Usage

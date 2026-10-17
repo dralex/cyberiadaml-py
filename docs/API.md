@@ -80,6 +80,15 @@ All additive, with defaults; the standard elements of the extension profiles get
 caller left in `unknown_datanodes` (and the `pivot` of a transition: written as a comment link);
 the typed fields win. The new texts are kept as written (the 1.x ones stay trimmed).
 
+## The CyberiadaML Interface
+
+    from cyberiadaml_py import cml as CyberiadaML
+
+The interface of the `CyberiadaML` module of libcyberiadamlpp-py (1.0.9) — its classes, enums,
+exceptions and dump — over the core, for the programs that read or build documents without
+geometry and without the C/C++ libraries (1.7). The tiers, the reading rules, the decisions and
+the class table are in `CML.md`.
+
 ## The Core Interface
 
     from cyberiadaml_py import core
