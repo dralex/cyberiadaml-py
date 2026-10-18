@@ -118,6 +118,42 @@ def _event(block, node: bool) -> Tuple[str, EventPropagation]:
     return trigger, EventPropagation(eventPropagationNone)
 
 
+POINT_ONLY = ('initial', 'final', 'terminate')
+
+
+def _check_geometry(document, strict: bool) -> None:
+    """Refuse the node geometry the C library refuses on reading."""
+    full = any(p.name == 'geometry' and p.value.strip() == 'full'
+               for p in document.meta_params)
+    for machine in document.machines:
+        nodes = [machine] + list(core.model.iter_machine_nodes(machine))
+        for node in nodes:
+            shape = getattr(node, 'geometry', None)
+            if shape is None:
+                continue
+            kind = (getattr(node, 'kind', '') or '').strip() \
+                if isinstance(node, core.model.Vertex) else ''
+            ident = getattr(node, 'id', '')
+            if isinstance(node, core.model.Vertex) and kind != 'choice':
+                if kind in POINT_ONLY and strict and \
+                        isinstance(shape, core.Rect):
+                    raise errors.error(errors.CybMLException,
+                                       'Point node %s has rect geometry' %
+                                       ident)
+                continue
+            if isinstance(shape, core.Point):
+                if strict:
+                    raise errors.error(errors.CybMLException,
+                                       'Rect (node %s) has point geometry'
+                                       % ident)
+                shape = core.Rect(shape.x, shape.y, 0.0, 0.0)
+            # only the extended format sizes the rect exactly (9.1)
+            if full and (shape.width == 0.0 or shape.height == 0.0):
+                raise errors.error(errors.CybMLException,
+                                   'Rect (node %s) has zero width or height'
+                                   % ident)
+
+
 def _legacy(finding) -> bool:
     # repairs the binding makes without calling the document Lapki
     return finding.rule in ('lapki-d8a', 'lapki-d7f') or \
@@ -138,6 +174,15 @@ def _point(shape) -> Point:
     if isinstance(shape, (core.Point, core.Rect)):
         return Point(shape.x, shape.y)
     return Point()
+
+
+def _vertex_point(shape) -> Point:
+    # a point node: a sized rect gives its centre, -1 x -1 its corner
+    if isinstance(shape, core.Rect) and \
+            not (shape.width == -1.0 and shape.height == -1.0):
+        return Point(shape.x + shape.width / 2.0,
+                     shape.y + shape.height / 2.0)
+    return _point(shape)
 
 
 def _rect(shape) -> Rect:
@@ -305,7 +350,7 @@ class _Reader:
     def vertex(self, node, parent) -> Element:
         kind = (node.kind or '').strip()
         ident = self.ident(node.id)
-        point = _point(node.geometry) if self.geometry else None
+        point = _vertex_point(node.geometry) if self.geometry else None
         name = _rstrip(node.name)
         element: Element
         if kind in POINT_KINDS:
@@ -480,14 +525,14 @@ def read(doc: Document, text: str, gf: DocumentGeometryFormat,
     if refused:
         raise _error(refused, text, strict)
     arena = ARENA.search(text) is not None
-    if gf != geometryFormatNone and _has_geometry(document) and (
-            arena or gf == geometryFormatQt):
+    if gf != geometryFormatNone and _has_geometry(document) and arena:
         raise errors.error(errors.NotImplementedException,
-                           'the Arena geometry' if arena
-                           else 'the Qt geometry format')
+                           'the Arena geometry')
     if document.meta_comment is None and not skip_meta_format:
         raise errors.error(errors.MetainfoException,
                            'No CGML_META formal comment in the document')
+    if gf != geometryFormatNone:
+        _check_geometry(document, strict)
     reader = _Reader(doc, gf, skip_empty_actions, strict)
     reader.meta(document, skip_meta_format)
     for machine in document.machines:
@@ -504,8 +549,11 @@ def read(doc: Document, text: str, gf: DocumentGeometryFormat,
             meta._body = doc._meta.encode()
     if simplify_ids:
         reader.simplify_ids()
+    from . import drawing
     if reader.geometry and _has_geometry(document):
-        doc._geometry_format = DocumentGeometryFormat(gf)
+        drawing.import_geometry(doc, DocumentGeometryFormat(gf))
+    else:
+        drawing.update_center(doc, None)
     if arena:
         return FORMAT_ARENA
     return core.FORMAT_STANDARD if skip_meta_format else _label(document)

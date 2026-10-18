@@ -264,9 +264,8 @@ class Element:
         result._parent = parent
         return result
 
-    def get_bound_rect(self, *args) -> Rect:
-        raise errors.error(errors.NotImplementedException,
-                           'the bounding rect')
+    def get_bound_rect(self, d) -> Rect:
+        return Rect()
 
     def _prefix(self) -> str:
         text = "%s: {id: '%s'" % (TYPE_NAMES[self._type], self._id)
@@ -336,9 +335,11 @@ class CommentSubject:
     def has_geometry_polyline(self) -> bool:
         return len(self._polyline) > 0
 
-    def get_bound_rect(self, *args) -> Rect:
-        raise errors.error(errors.NotImplementedException,
-                           'the bounding rect')
+    def get_bound_rect(self, d) -> Rect:
+        r = Rect()
+        if self.has_geometry() and len(self._polyline):
+            r.expand(self._polyline, d)
+        return r
 
     def get_geometry_polyline(self) -> Polyline:
         return self._polyline
@@ -422,6 +423,23 @@ class Comment(Element):
     def has_geometry(self) -> bool:
         return self._rect.valid
 
+    def get_bound_rect(self, d) -> Rect:
+        r = parent_rect = Rect()
+        if self.has_geometry():
+            r = self._rect.copy()
+            parent_rect = self._rect.copy()
+            for subject in self._subjects:
+                element = subject.get_element()
+                if element is None or not element.has_geometry():
+                    continue
+                ch = subject.get_bound_rect(d)
+                if int(d.get_geometry_format()) in (CYB_FORMAT,
+                                                    QT_FORMAT):
+                    ch.x += parent_rect.x
+                    ch.y += parent_rect.y
+                r.expand(ch, d)
+        return r
+
     def has_subjects(self) -> bool:
         return bool(self._subjects)
 
@@ -499,6 +517,12 @@ class Vertex(Element):
 
     def has_geometry(self) -> bool:
         return self._point.valid
+
+    def get_bound_rect(self, d) -> Rect:
+        r = Rect()
+        if self.has_geometry():
+            r.expand(self._point, d)
+        return r
 
     def update_geometry(self, point: Point) -> None:
         self._point = point.copy()
@@ -598,6 +622,9 @@ class Choice(Pseudostate):
     def has_geometry(self) -> bool:
         return self._rect.valid
 
+    def get_bound_rect(self, d) -> Rect:
+        return self._rect.copy() if self.has_geometry() else Rect()
+
     def get_color(self) -> str:
         return self._color
 
@@ -674,6 +701,12 @@ class Transition(Element):
         return self._sp.valid or self._tp.valid or \
             self._label_point.valid or self._label_rect.valid or \
             len(self._polyline) > 0
+
+    def get_bound_rect(self, d) -> Rect:
+        r = Rect()
+        if self.has_geometry() and len(self._polyline):
+            r.expand(self._polyline, d)
+        return r
 
     def has_geometry_polyline(self) -> bool:
         return len(self._polyline) > 0
@@ -753,6 +786,96 @@ class Transition(Element):
             if self._color:
                 text += ', color: %s' % self._color
         return text + '}'
+
+
+CYB_FORMAT = 2              # geometryFormatCyberiada10
+QT_FORMAT = 3               # geometryFormatQt
+YED_FORMAT = 1              # geometryFormatLegacyYED
+
+
+def _own_position(element: Element):
+    # the stored position (and size for the rect-based elements)
+    if isinstance(element, (ElementCollection, Choice, Comment)):
+        r = element._rect
+        return (r.x, r.y, r.width, r.height) if r.valid else None
+    if isinstance(element, Vertex):
+        p = element._point
+        return (p.x, p.y, 0.0, 0.0) if p.valid else None
+    return None
+
+
+def _node_frame(coll: 'ElementCollection', node: Element, fmt: int):
+    # the node frame relative to the frame of the parent of the collection
+    own = _own_position(node)
+    if own is None:
+        return None
+    fx, fy, w, h = own
+    if fmt == YED_FORMAT:
+        return fx, fy, w, h
+    stop = coll.get_parent()
+    e = node.get_parent()
+    while e is not None and e is not stop:
+        pos = _own_position(e)
+        if pos is not None:
+            fx += pos[0]
+            fy += pos[1]
+        # the children of a state with a region are relative to it
+        if isinstance(e, State) and e.has_region_geometry():
+            fx += e._region_rect.x
+            fy += e._region_rect.y
+        e = e.get_parent()
+    return fx, fy, w, h
+
+
+def _expand_transition(r: Rect, coll: 'ElementCollection', t: 'Transition',
+                       d, fmt: int) -> None:
+    """Extend the rect by the resolved geometry of a transition."""
+    if not t.has_geometry():
+        return
+    source = d.find_element_by_id(t.get_source_element_id())
+    target = d.find_element_by_id(t.get_target_element_id())
+    if source is None or target is None:
+        return
+    sf = _node_frame(coll, source, fmt)
+    tf = _node_frame(coll, target, fmt)
+    if sf is None or tf is None:
+        return
+    sfx, sfy, sw, sh = sf
+    tfx, tfy, tw, th = tf
+    yed = fmt == YED_FORMAT
+    # the explicit ends are bound to the centres (yed/qt) or the corners
+    if t._sp.valid:
+        sp = Point(sfx + sw / 2.0 + t._sp.x, sfy + sh / 2.0 + t._sp.y) \
+            if yed else Point(sfx + t._sp.x, sfy + t._sp.y)
+    elif fmt == QT_FORMAT:
+        sp = Point(sfx, sfy)
+    else:
+        sp = Point(sfx + sw / 2.0, sfy + sh / 2.0)
+    if t._tp.valid:
+        tp = Point(tfx + tw / 2.0 + t._tp.x, tfy + th / 2.0 + t._tp.y) \
+            if yed else Point(tfx + t._tp.x, tfy + t._tp.y)
+    elif fmt == QT_FORMAT:
+        tp = Point(tfx, tfy)
+    else:
+        tp = Point(tfx + tw / 2.0, tfy + th / 2.0)
+    if len(t._polyline):
+        r.expand(sp, d)
+        r.expand(tp, d)
+        for p in t._polyline:
+            r.expand(p if yed else Point(sfx + p.x, sfy + p.y), d)
+    # the labels always extend the rect
+    if t._label_point.valid:
+        lp = t._label_point
+        r.expand(Point(sp.x + lp.x, sp.y + lp.y) if yed
+                 else Point(sfx + lp.x, sfy + lp.y), d)
+    if t._label_rect.valid:
+        lr = t._label_rect
+        if yed:
+            r.expand(Rect(sfx + sw / 2.0 + lr.x - lr.width / 2.0,
+                          sfy + sh / 2.0 + lr.y - lr.height / 2.0,
+                          lr.width, lr.height), d)
+        else:
+            r.expand(Rect(sfx + lr.x, sfy + lr.y, lr.width, lr.height), d)
 
 
 class ElementCollection(Element):
@@ -884,6 +1007,33 @@ class ElementCollection(Element):
 
     def has_geometry(self) -> bool:
         return self._rect.valid
+
+    def get_bound_rect(self, d, exclude_comments: bool = False) -> Rect:
+        r = Rect()
+        parent_rect = Rect()
+        fmt = int(d.get_geometry_format())
+        if self.has_geometry():
+            parent_rect = self._rect.copy()
+            r.expand(self._rect, d)
+        for child in self._children:
+            if isinstance(child, Transition):
+                _expand_transition(r, self, child, d, fmt)
+                continue
+            # a comment may lie outside the state-machine border
+            if exclude_comments and child.get_type() in COMMENT_TYPES:
+                continue
+            if isinstance(child, ElementCollection):
+                ch = child._bound_rect(d, exclude_comments)
+            else:
+                ch = child.get_bound_rect(d)
+            if fmt in (CYB_FORMAT, QT_FORMAT):
+                ch.x += parent_rect.x
+                ch.y += parent_rect.y
+            r.expand(ch, d)
+        return r
+
+    def _bound_rect(self, d, exclude_comments: bool) -> Rect:
+        return ElementCollection.get_bound_rect(self, d, exclude_comments)
 
     def get_color(self) -> str:
         return self._color
@@ -1085,6 +1235,12 @@ class StateMachine(ElementCollection):
 
     def get_comments(self) -> List[Element]:
         return self.find_elements_by_types(COMMENT_TYPES)
+
+    def get_bound_rect(self, d,                    # type: ignore[override]
+                       exclude_comments: bool = False) -> Rect:
+        if self.has_geometry():
+            return self._rect.copy()
+        return ElementCollection.get_bound_rect(self, d, exclude_comments)
 
     def get_transitions(self) -> List[Element]:
         return self.find_elements_by_type(elementTransition)

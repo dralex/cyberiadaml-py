@@ -1,8 +1,8 @@
 # The CyberiadaML Interface
 
 `cyberiadaml_py.cml` gives the interface of the `CyberiadaML` module of libcyberiadamlpp-py
-(1.0.9) in pure Python, over the core of this library. A program that reads or builds documents
-without geometry runs on either:
+(1.0.8) in pure Python, over the core of this library and `htgeom`, a port of libhtreegeom. A
+program that reads, builds, converts or lays out Cyberiada documents runs on either:
 
     try:
         import CyberiadaML
@@ -11,7 +11,7 @@ without geometry runs on either:
 
 ```
  consumers: hsmd_reader (hsm-dispatcher-py, hsm-to-python), cybersphere-agents check,
-            hsm-console-viewer, hsm_robot_ros_generator, the editor polygon tools
+            hsm-console-viewer, hsm_robot_ros_generator, cybersphere-hsm-maker
         |  the binding's names, signatures, enums, exceptions, dump
         v
  cml/  Document / LocalDocument -------------------------------+
@@ -21,6 +21,11 @@ without geometry runs on either:
         |                                                      ^
         v                                                      |
  core/  read(strict)  - XML, Lapki dialect, checks     write()  - standard document, strict re-read
+
+ cml/drawing.py  convert_geometry, reconstruct_geometry, update_geometry, the import, the export
+        |  cml/bridge.py: the element tree as htgeom trees, the geometry written back
+        v
+ htgeom/  the coordinate formats, the bounding rects, the layered layout (libhtreegeom port)
 ```
 
 ## Tiers
@@ -29,8 +34,8 @@ without geometry runs on either:
 |---|---|---|---|
 | R | 1.7 | reading: `open`, `decode`, the element tree, every getter and query, meta, enums, constants, exceptions, the dump | the readers above |
 | W | 1.7 | building: the `new_*` factories, `Action`, edits, copies, comment subjects, meta setters, `encode`, `save`, `save_as` | hsm-console-viewer examples, builders without layout |
-| G | later | geometry: the Qt coordinates, bounding rects, `check_geometry`, the derived sizes of `geometry/ short`, the Arena frame, the dump's `bounding rect` | the editor closeness tool |
-| — | — | layout (`reconstruct_geometry`, `update_geometry`), yEd formats, isomorphism of different machines, the Lapki writer | raise `NotImplementedException`; hsm-maker and ad-statistics keep the binding |
+| G | 1.8 | geometry: the Qt, Cyberiada and yEd coordinates, `convert_geometry`, the bounding rects, `check_geometry`, the sizes of the loose rects (`geometry/ short`), the layout (`reconstruct_geometry`, `update_geometry`), the dump's `bounding rect` | cybersphere-hsm-maker, the editor closeness tool |
+| — | — | the yEd files, the fill-in of `decode(reconstruct=…)`, the Arena geometry, isomorphism of different machines, the Lapki writer | raise `NotImplementedException`; ad-statistics keeps the binding |
 
 ## Decisions
 
@@ -38,10 +43,9 @@ without geometry runs on either:
    texts, the dump. `cml` raises only where the binding's model cannot hold a standard
    document: several regions in a state, `fork`/`join`, a `do/` block, a guard on `entry`/
    `exit` (`CybMLException`, as the binding).
-2. **Geometry formats.** R and W read and write `geometryFormatNone` and
-   `geometryFormatCyberiada10` (the values of the file). `geometryFormatQt` stays the default
-   of `open` and `decode`; until G it raises `NotImplementedException` for a document with
-   geometry — never other coordinates silently.
+2. **Geometry.** The numbers are the binding's: `htgeom` ports libhtreegeom with its arithmetic
+   in its order (float points where the C library stores floats), so the dumps are equal at the
+   printed precision and the saved documents at the precision of the canonical dump.
 3. **Exceptions** form the hierarchy of the C++ library under `CyberiadaML.Exception` (the
    binding registers them flat): `FileException`, `FormatException` > `XMLException`,
    `CybMLException` > `ActionException`, `MetainfoException`; `ParametersException` >
@@ -85,7 +89,8 @@ The core reads the document (permissive, or `strict=True`); `cml/reader.py` buil
   metainformation by the defaults.
 - **Formats**: `formatDetect` gives `formatCyberiada10` for every `Cyberiada-GraphML-*`
   document, `format_str` the core label (`Cyberiada-GraphML-1.0` or `-Lapki`), or
-  `-Arena` when the document has a `referenceGraphID` data key (its geometry needs tier G);
+  `-Arena` when the document has a `referenceGraphID` data key (read with a geometry format,
+  its geometry raises `NotImplementedException`);
   a yEd document raises `NotImplementedException`.
 - **Errors**: not well-formed XML → `XMLException`; a metadata finding → `MetainfoException`;
   any other refusing finding → `CybMLException`; a missing or unreadable file → `FileException`.
@@ -101,9 +106,10 @@ The core reads the document (permissive, or `strict=True`); `cml/reader.py` buil
 
 ### Differences from the binding
 
-Checked with the 26 binding test scripts of tiers R and W (`tests/cml/binding/`), with
-`tests/cml/binding-view.json` (the binding's dumps of the 131 examples) and with the consumers'
-own tests run on both:
+Checked with the 53 binding test scripts of tiers R, W and G (`tests/cml/binding/`), with
+`tests/cml/binding-view.json` (the binding's dumps of the 131 examples), with
+`tests/cml/binding-layout.json` (its geometry results on them) and with the consumers' own tests
+run on both:
 
 | | binding | `cml` |
 |---|---|---|
@@ -113,6 +119,8 @@ own tests run on both:
 | strict mode, a broken Lapki document | `MetainfoException` (the metadata is checked first) | `CybMLException` |
 | a node with a vertex kind and a submachine reference | the submachine state | the vertex |
 | a yEd document | read | `NotImplementedException` |
+| `decode(reconstruct=True)` | the geometry filled in | `NotImplementedException` |
+| writing a document that breaks a standard rule: a data chunk not in the data, submachine points the machine lacks, ids repeated across machines, siblings sharing a name | written | `CybMLException` |
 | writing a deferred event with behaviour, a deferred transition | `TICK/ defer` and the behaviour lines | `CybMLException`: 6.8 gives a deferred event no behaviour and no transition |
 
 The consumers: hsm-dispatcher-py (31 scenarios, 39 diagrams), hsm-to-python, the
@@ -141,12 +149,31 @@ returns `False` (a stub in C++ too); `compare_actions` is a port of the C functi
 `check_isomorphism` answers `smiIdentical` for equal machines and raises
 `NotImplementedException` otherwise.
 
+## Geometry
+
+The element tree goes to htgeom as libcyberiadaml gives its documents to libhtreegeom: a state
+with children is a composite node with one region node `<id>:` (the region rect), the
+`CGML_META` comment takes no part unless it has geometry, the edges are the transitions of a
+machine and then the comment subjects (a subject on a transition ends at its target).
+
+| operation | what happens |
+|---|---|
+| `open`, `decode` with `gf` | the file geometry (left top, borders) is checked (strict: no point on a rect node, no rect on an initial, final or terminate; `geometry/ full`: no loose rect), the loose rects are sized unless `geometry/ full`, then converted to `gf`; non-strict, a point on a rect node is a loose rect and a rect on a point node its centre (the `-1 x -1` rect of cyberiadaml-js its corner) |
+| `encode`, `save` | the geometry is converted to the file format; `round` rounds the nodes with children (positions 4 decimals, sizes 3) and the transitions, as the C library does |
+| `convert_geometry` | the formats Qt, Cyberiada10 and yEd; to `geometryFormatNone` a `ParametersException`, as the C library converts no geometry to no coordinates |
+| `reconstruct_geometry(sm)` | the geometry cleaned, the layered layout with the text-size estimates (10 px a character, 20 a line, 8 the margin; a machine has none, as in the C library) |
+| `update_geometry(sm)` | the layout seeded by the drawing: the drawn elements stay, the others are laid in |
+| `get_bound_rect`, `check_geometry` | the C++ algorithms, the centre point included |
+
+After a geometry operation the transitions are local (`type: loc`), as the binding rebuilds its
+elements from the C document; the document's centre point follows the C++ rules.
+
 ## The dump
 
 `repr()` of every element, `Action`, `CommentSubject`, `Point`, `Rect` and `Polyline` follows
 the C++ `dump_to_str`: `<Type>: {id: '<id>'[, name: '<n>'][, formal name: '<f>'] …}`, numbers
-as `%g`, points `(x; y)`, rects `(x; y; w; h)`, polylines `[ … ]`, texts unescaped. The
-document's `bounding rect` part comes with tier G.
+as `%g`, points `(x; y)`, rects `(x; y; w; h)`, polylines `[ … ]`, texts unescaped; a document
+with geometry ends with its `bounding rect`.
 
 ## Classes
 
@@ -155,7 +182,7 @@ The names, the signatures and the overloads of the binding. Tier W unless marked
 | class | content |
 |---|---|
 | module | R: the enums (`ElementType`, `ActionType`, `EventPropagation`, `TransitionType`, `DocumentFormat`, `DocumentGeometryFormat`, `CommentSubjectType`, `DocumentTransitionOrder`, `DocumentEventPropagation`, `DocumentGeometryDeclaration`) with their members at module level and their values, the `adiff*`/`smi*` ints, `QUALIFIED_NAME_SEPARATOR`, `__version__`, the exceptions, `is_legacy_yed_format`, `cleanup_library` (no-op) |
-| `Point`, `Rect`, `Polyline` | R: the values and `repr`; W: setters, `round`, `Rect.expand`, `almost_equal` |
+| `Point`, `Rect`, `Polyline` | R: the values and `repr`; W: setters, `round` (truncating, as in C++), `Rect.expand`, `almost_equal` |
 | `Action` | R: getters, `is_empty_transition`; W: constructors, `update`, `clear` |
 | `CommentSubject` | R: getters; W: constructors, geometry setters |
 | `DocumentMetainformation` | R: the fields, `get_string`, `get_geometry`; W: `set_string`, `remove_string`, `set_geometry` |
@@ -164,7 +191,8 @@ The names, the signatures and the overloads of the binding. Tier W unless marked
 | `State`, `SubmachineState` | R: actions, kind, `get_substates`, collapsed, region rect, reference; W: action edits, `set_collapsed`, `set_submachine_reference` |
 | `StateMachine` | R: `get_comments`, `get_transitions`; W: the copy constructor, `check_isomorphism` of equal machines |
 | vertices, `Choice`, `Comment`, `Transition` | R: the getters of the binding; W: constructors and updates, `add_subject`, `remove_subject`, `update_label` |
-| `Document`, `LocalDocument` | R: `decode`, `open`, `get_meta`, `meta`, `get_meta_element`, `get_state_machines`, `get_parent_sm`, `get_geometry_format`, the file identity; W: the factories, `encode`, `save`, `save_as`, `reset`, `set_name`, `set_file`, `update_metainfo_from_comment`, the copy constructors |
+| `Document`, `LocalDocument` | R: `decode`, `open`, `get_meta`, `meta`, `get_meta_element`, `get_state_machines`, `get_parent_sm`, `get_geometry_format`, the file identity; W: the factories, `encode`, `save`, `save_as`, `reset`, `set_name`, `set_file`, `update_metainfo_from_comment`, the copy constructors; G: `convert_geometry`, `set_geometry`, `clean_geometry`, `get_bound_rect`, `check_geometry`, `reconstruct_geometry`, `update_geometry` |
+| every element | G: `get_bound_rect`, `clean_geometry`, `round_geometry`, the geometry setters |
 
 The binding's lists are Python lists; the out-parameter forms of `check_isomorphism` are not
 provided.

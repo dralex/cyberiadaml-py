@@ -156,12 +156,19 @@ outside the standard, are written after the state machines. Errors of both reach
                                   | decode/open            encode/save |
                                   v                                    ^
                          cml/reader.py: core model -> element tree     cml/writer.py
-                                  ^                                    |
-                         core.read(strict)                     core.write
+                                  ^             |                      ^
+                         core.read(strict)      |   convert, layout    |  the file format
+                                                v                      |
+                         cml/drawing.py --> cml/bridge.py: element tree <-> htgeom trees
+                                                |
+                                                v
+                         htgeom/: the formats, the bounding rects, the layered layout
 ```
 
 `cml` is a second facade over the same core, with the names and the behaviour of the
-libcyberiadamlpp-py binding — the element tree, the action texts, the dump; see `CML.md`.
+libcyberiadamlpp-py binding — the element tree, the action texts, the dump, the geometry; see
+`CML.md`. `htgeom` is a port of libhtreegeom: the coordinate formats and the layered layout of
+the hierarchical trees, the same arithmetic in the same order.
 
 ## Code layout
 
@@ -183,6 +190,12 @@ cyberiadaml_py/
     elements.py document.py
     reader.py              core model -> element tree
     writer.py              element tree -> core model
+    bridge.py              element tree <-> htgeom trees
+    drawing.py             the formats, the layout, the import and the export
+  htgeom/                  the geometry of the hierarchical trees (libhtreegeom port)
+    types.py segment.py    the trees, the segment and rect crossing
+    transform.py           the coordinate formats, the bounding rects, the attachments
+    layout.py              the layered layout: P1-P10, the update
 ```
 
 ## Dependencies
@@ -194,7 +207,8 @@ types keep `pydantic`; `xmltodict` is no longer used. Python 3.10 or newer.
 
 The library is distributed under the LGPL-3 (`LICENSE`), its documentation under the GFDL 1.3.
 The core is a port of `cgmlval`, which cyberiadaml-compat-tests distributes under the GPL-3; its
-author contributes the port to this library under the LGPL-3. The test examples
+author contributes the port to this library under the LGPL-3. `htgeom` is a port of
+libhtreegeom (LGPL-3, the same author). The test examples
 (`tests/examples/`) keep the licences of their sources, named in their README files; they are
 not part of the package.
 

@@ -161,6 +161,8 @@ class Document(ElementCollection):
     def __init__(self, format: Any =
                  DocumentGeometryFormat(geometryFormatNone)) -> None:
         super().__init__(None, elementRoot, '', '')
+        # the origin the C++ library adds to the bounding rect
+        self._center_point = Point()
         if isinstance(format, Document):
             self._copy_from(format)
             return
@@ -169,7 +171,7 @@ class Document(ElementCollection):
     def _copy_from(self, source: 'Document') -> None:
         clone = copying.deepcopy(source)
         for name in ('_children', '_name', '_meta', '_geometry_format',
-                     '_meta_element'):
+                     '_meta_element', '_center_point'):
             setattr(self, name, getattr(clone, name))
         for child in self._children:
             child._parent = self
@@ -180,6 +182,8 @@ class Document(ElementCollection):
         self._meta = DocumentMetainformation()
         self._geometry_format = DocumentGeometryFormat(format)
         self._meta_element: Optional[Comment] = None
+        if format != geometryFormatNone:
+            self._center_point = Point(0.0, 0.0)
 
     def decode(self, buffer, f: DocumentFormat =
                DocumentFormat(formatDetect),
@@ -222,35 +226,49 @@ class Document(ElementCollection):
 
     def set_geometry(self, format: DocumentGeometryFormat) -> None:
         self._geometry_format = DocumentGeometryFormat(format)
+        if format == geometryFormatNone:
+            self._center_point = Point()
 
     def clean_geometry(self) -> None:
         super().clean_geometry()
         self._geometry_format = DocumentGeometryFormat(geometryFormatNone)
 
     def convert_geometry(self, gf: DocumentGeometryFormat) -> None:
-        if gf == self._geometry_format:
-            return
-        if gf == geometryFormatNone:
-            self.clean_geometry()
-            return
-        raise errors.error(errors.NotImplementedException,
-                           'the geometry conversion')
+        from . import drawing
+        if not isinstance(gf, int):
+            raise TypeError('convert_geometry(): incompatible function '
+                            'arguments')
+        drawing.convert(self, DocumentGeometryFormat(gf))
 
     def check_geometry(self) -> bool:
-        raise errors.error(errors.NotImplementedException,
-                           'the geometry check')
+        # the content of a bordered machine fits the border, no comments
+        for sm in self.get_state_machines():
+            if not sm.has_geometry():
+                continue
+            u = ElementCollection.get_bound_rect(sm, self, True)
+            if u.valid and not u.almost_equal(sm._rect):
+                return False
+        return True
 
     def reconstruct_geometry(self, reconstruct_sm: bool = False) -> None:
-        raise errors.error(errors.NotImplementedException,
-                           'the geometry reconstruction')
+        from . import drawing
+        drawing.layout(self, bool(reconstruct_sm), False)
 
-    def update_geometry(self, *args) -> None:  # type: ignore[override]
-        raise errors.error(errors.NotImplementedException,
-                           'the geometry update')
+    def update_geometry(self,  # type: ignore[override]
+                        reconstruct_sm: bool = False) -> None:
+        from . import drawing
+        drawing.layout(self, bool(reconstruct_sm), True)
 
-    def get_bound_rect(self, *args) -> Rect:
-        raise errors.error(errors.NotImplementedException,
-                           'the bounding rect')
+    def get_bound_rect(self, *args) -> Rect:  # type: ignore[override]
+        d = args[0] if args else self
+        r = Rect()
+        if self.has_geometry():
+            for child in self._children:
+                r.expand(child.get_bound_rect(d), d)
+        if r.valid and self._center_point.valid:
+            r.x += self._center_point.x
+            r.y += self._center_point.y
+        return r
 
     def update_metainfo_from_comment(self, body: str) -> bool:
         # a stub in the C++ library as well
@@ -317,6 +335,7 @@ class Document(ElementCollection):
                 getattr(v, 'valid', False) or (
                     isinstance(v, Polyline) and len(v)) for v in values):
             self._geometry_format = DocumentGeometryFormat(geometryFormatQt)
+            self._center_point = Point(0.0, 0.0)
 
     def _container(self, parent: Optional[Element]) -> ElementCollection:
         if parent is None:
@@ -616,7 +635,10 @@ class Document(ElementCollection):
         text = self._prefix() + ', geometry format: %s' % \
             GEOMETRY_FORMAT_NAMES[int(self._geometry_format)]
         text += ', meta: {%s}' % self._meta.dump()
-        return text + self._collection() + '}'
+        text += self._collection()
+        if self.has_geometry():
+            text += ', bounding rect: %r' % self.get_bound_rect()
+        return text + '}'
 
     def __repr__(self) -> str:
         return self._dump()
@@ -660,7 +682,8 @@ class LocalDocument(Document):
                            check_initial, strict_actions,
                            skip_empty_behavior)
         try:
-            pathlib.Path(self._file_path).write_text(text, encoding='utf-8')
+            pathlib.Path(self._file_path).write_text(
+                text, encoding='utf-8', newline='\n')
         except OSError:
             raise errors.error(errors.FileException,
                                'Cannot open file ' + self._file_path) \
@@ -675,7 +698,8 @@ class LocalDocument(Document):
         text = self.encode(f, round, skip_geometry, check_initial,
                            strict_actions, skip_empty_behavior)
         try:
-            pathlib.Path(path).write_text(text, encoding='utf-8')
+            pathlib.Path(path).write_text(text, encoding='utf-8',
+                                          newline='\n')
         except OSError:
             raise errors.error(errors.FileException,
                                'Cannot open file ' + path) from None

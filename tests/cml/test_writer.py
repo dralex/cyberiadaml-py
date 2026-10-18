@@ -132,8 +132,7 @@ def test_geometry_switches_format():
     assert doc.get_geometry_format() == cml.geometryFormatNone
     doc.new_state(sm, 'B', cml.Action(), cml.Rect(0, 0, 10, 10))
     assert doc.get_geometry_format() == cml.geometryFormatQt
-    with pytest.raises(cml.NotImplementedException):
-        doc.encode()
+    assert 'dGeometry' in doc.encode()
     assert 'dGeometry' not in doc.encode(skip_geometry=True)
 
 
@@ -213,8 +212,12 @@ def test_encode_options():
     assert doc.encode(check_initial=True)
     geometry = cml.Document(cml.geometryFormatCyberiada10)
     gsm = geometry.new_state_machine('SM')
-    geometry.new_state(gsm, 'A', cml.Action(), cml.Rect(0.12345, 0, 10, 10))
-    assert '0.1235' in geometry.encode(round=True)
+    outer = geometry.new_state(gsm, 'A', cml.Action(),
+                               cml.Rect(0.12346, 0, 100, 100))
+    geometry.new_state(outer, 'B', cml.Action(), cml.Rect(0.12346, 0, 10, 10))
+    # as the C library: the nodes with children are rounded, not the leaves
+    text = geometry.encode(round=True)
+    assert 'x="0.1235"' in text and 'x="0.12346"' in text
     with pytest.raises(cml.CybMLException, match='single initial'):
         geometry.encode(check_initial=True)
     state = geometry.find_element_by_id('n0')

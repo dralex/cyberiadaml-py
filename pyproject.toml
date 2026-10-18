@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cyberiadaml-py"
-version = "1.7.0"
+version = "1.8.0"
 description = "The Python 3 library for processing the CyberiadaML state machine graphs"
 authors = ["L140-beep <kartoshka0302@mail.ru>"]
 license = "LGPL-3.0-or-later"
@@ -29,7 +29,8 @@ import-order-style="pep8"
 inline-quotes = "single"
 ignore=["D107", "W504", "F403", "F401"]
 # the cml methods are the binding's, documented in docs/CML.md
-per-file-ignores = ["cyberiadaml_py/cml/*.py:D102,D105"]
+per-file-ignores = ["cyberiadaml_py/cml/*.py:D102,D105",
+                    "cyberiadaml_py/htgeom/*.py:D102,D103,D105"]
 # copies of the libcyberiadamlpp-py tests, kept as they are
 exclude = ["tests/cml/binding", ".venv"]
 

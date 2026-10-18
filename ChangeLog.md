@@ -1,5 +1,21 @@
 # cyberiadaml-py project changelog
 
+## Version 1.8.0 (unreleased)
+
+Added:
+- the geometry of `cyberiadaml_py.cml`: the Qt, Cyberiada and yEd coordinate formats on reading,
+  `convert_geometry` and writing; the bounding rects, `check_geometry`, the sizes of the loose
+  rects of `geometry/ short`; `reconstruct_geometry` and `update_geometry`, the layered layout -
+  the results of the binding.
+- `cyberiadaml_py.htgeom`: the port of libhtreegeom (the coordinate formats, the bounding rects,
+  the layered layout and its update).
+- the tests: the libcyberiadamlpp-py scripts of the geometry, the binding's geometry results on
+  the examples.
+
+Changed:
+- the rounding of `round()` truncates and the `round` option of `encode` rounds the nodes with
+  children and the transitions, as the C++ library does.
+
 ## Version 1.7.0 (unreleased)
 
 Added:

@@ -20,7 +20,6 @@
 #
 # -----------------------------------------------------------------------------
 """Writing: the element tree as a core model, written by the core writer."""
-import math
 from typing import Any, Dict, List, Optional
 
 from .. import core
@@ -46,14 +45,16 @@ KINDS = {
     ElementType.elementExitPoint: 'exitPoint',
 }
 PROPAGATION_WORDS = {1: 'block', 2: 'propagate', 3: 'defer'}
-# the decimal places of the rounded geometry: positions finer than sizes
-ROUND_SIZE = 3
-ROUND_POSITION = ROUND_SIZE + 1
 
 
-def _round(value: float, places: int) -> float:
-    scale = 10 ** places
-    return math.copysign(math.floor(abs(value) * scale + 0.5) / scale, value)
+def _rect(rect) -> Optional[core.Rect]:
+    if rect is None:
+        return None
+    return core.Rect(rect.x, rect.y, rect.width, rect.height)
+
+
+def _point(point) -> Optional[core.Point]:
+    return core.Point(point.x, point.y) if point is not None else None
 
 
 def action_text(actions: List[Action]) -> Optional[str]:
@@ -87,35 +88,28 @@ def action_text(actions: List[Action]) -> Optional[str]:
 class _Writer:
     """One encode: the element tree as a core document."""
 
-    def __init__(self, doc, geometry: bool, round_: bool,
-                 skip_empty_behavior: bool, strict_actions: bool) -> None:
+    def __init__(self, doc, bridge, skip_empty_behavior: bool,
+                 strict_actions: bool) -> None:
         self.doc = doc
-        self.geometry = geometry
-        self.round = round_
+        self.bridge = bridge        # the geometry in the file format
         self.skip_empty = skip_empty_behavior
         self.strict_actions = strict_actions
 
-    def point(self, value: Point) -> Optional[core.Point]:
-        if not self.geometry or not value.valid:
+    def geometry(self, element: Element):
+        node = self.bridge.node_of.get(id(element)) if self.bridge else None
+        if node is None:
             return None
-        if self.round:
-            return core.Point(_round(value.x, ROUND_POSITION),
-                              _round(value.y, ROUND_POSITION))
-        return core.Point(value.x, value.y)
+        if node.point is not None:
+            return core.Point(node.point.x, node.point.y)
+        return _rect(node.rect)
 
-    def rect(self, value: Rect) -> Optional[core.Rect]:
-        if not self.geometry or not value.valid:
+    def region(self, state: State):
+        if self.bridge is None or id(state) not in self.bridge.region_of:
             return None
-        if self.round:
-            return core.Rect(_round(value.x, ROUND_POSITION),
-                             _round(value.y, ROUND_POSITION),
-                             _round(value.width, ROUND_SIZE),
-                             _round(value.height, ROUND_SIZE))
-        return core.Rect(value.x, value.y, value.width, value.height)
+        return _rect(self.bridge.region_of[id(state)].rect)
 
-    def polyline(self, value: Polyline) -> List[core.Point]:
-        points = [self.point(p) for p in value]
-        return [p for p in points if p is not None]
+    def edge(self, key):
+        return self.bridge.edge_of.get(key) if self.bridge else None
 
     def actions(self, state: State) -> Optional[str]:
         actions: List[Action] = []
@@ -143,35 +137,36 @@ class _Writer:
             return core.Comment(
                 element.get_id(), None,
                 kind='informal' if element.is_human_readable() else 'formal',
-                body=element.get_body(), markup=element._markup or None,
-                geometry=self.rect(element._rect),
+                body=element.get_body() or None,
+                markup=element._markup or None,
+                geometry=self.geometry(element),
                 color=element._color or None, **common)
         if isinstance(element, Choice):
             return core.Vertex(element.get_id(), None, kind='choice',
-                               geometry=self.rect(element._rect),
+                               geometry=self.geometry(element),
                                color=element._color or None, **common)
         if isinstance(element, Vertex):
             return core.Vertex(element.get_id(), None,
                                kind=KINDS[element.get_type()],
-                               geometry=self.point(element._point),
+                               geometry=self.geometry(element),
                                color=element._color or None, **common)
         if isinstance(element, SubmachineState):
             node = core.SubmachineState(
                 element.get_id(), None, ref=element.get_submachine_reference(),
-                geometry=self.rect(element._rect),
+                geometry=self.geometry(element),
                 color=element._color or None, **common)
         else:
             assert isinstance(element, State)
             node = core.State(element.get_id(), None,
                               data=self.actions(element),
                               collapsed=element.is_collapsed(),
-                              geometry=self.rect(element._rect),
+                              geometry=self.geometry(element),
                               color=element._color or None, **common)
         if element._children:
             region = core.Region(element.get_id() + REGION_SUFFIX, None)
             if isinstance(element, State) and \
                     not isinstance(element, SubmachineState):
-                region.geometry = self.rect(element._region_rect)
+                region.geometry = self.region(element)
             region.children = [self.node(c) for c in element._children
                                if not isinstance(c, Transition)]
             node.regions = [region]
@@ -180,26 +175,30 @@ class _Writer:
     def machine(self, sm: StateMachine) -> core.StateMachine:
         machine = core.StateMachine(sm.get_id(), None, name=sm._name,
                                     formal_name=sm._formal_name,
-                                    geometry=self.rect(sm._rect),
+                                    geometry=self.geometry(sm),
                                     marker=True)
         machine.children = [self.node(c) for c in sm._children
                             if not isinstance(c, Transition)]
         for transition in sm.get_transitions():
             assert isinstance(transition, Transition)
-            label = self.point(transition._label_point) or \
-                self.rect(transition._label_rect)
+            edge = self.edge(id(transition))
+            label = None
+            if edge is not None:
+                label = _point(edge.label_point) or _rect(edge.label_rect)
             machine.transitions.append(core.Transition(
                 transition.get_id(), None,
                 source=transition.get_source_element_id(),
                 target=transition.get_target_element_id(),
                 data=action_text([transition._action]),
-                polyline=self.polyline(transition._polyline),
-                source_point=self.point(transition._sp),
-                target_point=self.point(transition._tp),
+                polyline=[core.Point(p.x, p.y) for p in edge.polyline or []]
+                if edge is not None else [],
+                source_point=_point(edge.source_point) if edge else None,
+                target_point=_point(edge.target_point) if edge else None,
                 label_geometry=label, color=transition._color or None))
         for comment in sm.get_comments():
             assert isinstance(comment, Comment)
-            for subject in comment.get_subjects():
+            for k, subject in enumerate(comment._subjects):
+                link = self.edge((id(comment), k))
                 kind = subject.get_type()
                 pivot = 'dName' if kind == commentSubjectName else \
                     'dData' if kind == commentSubjectData else ''
@@ -207,9 +206,12 @@ class _Writer:
                     subject.get_id(), None, source=comment.get_id(),
                     target=subject.get_element().get_id(), pivot=pivot,
                     chunk=subject.get_fragment() if pivot else None,
-                    polyline=self.polyline(subject._polyline),
-                    source_point=self.point(subject._source),
-                    target_point=self.point(subject._target)))
+                    polyline=[core.Point(p.x, p.y)
+                              for p in link.polyline or []]
+                    if link is not None else [],
+                    source_point=_point(link.source_point) if link else None,
+                    target_point=_point(link.target_point)
+                    if link else None))
         return machine
 
 
@@ -222,9 +224,6 @@ def build(doc, round_: bool, skip_geometry: bool, check_initial: bool,
                            'Empty SM document to write')
     geometry = doc._geometry_format != geometryFormatNone and \
         not skip_geometry
-    if geometry and doc._geometry_format == geometryFormatQt:
-        raise errors.error(errors.NotImplementedException,
-                           'the Qt geometry format')
     if not geometry:
         # the library takes no other option without the geometry
         round_ = check_initial = strict_actions = skip_empty_behavior = False
@@ -236,8 +235,9 @@ def build(doc, round_: bool, skip_geometry: bool, check_initial: bool,
                 raise errors.error(errors.CybMLException, 'SM should have '
                                    'single initial pseudostate on the top '
                                    'level')
-    writer = _Writer(doc, geometry, round_, skip_empty_behavior,
-                     strict_actions)
+    from . import drawing
+    bridge = drawing.export(doc, round_) if geometry else None
+    writer = _Writer(doc, bridge, skip_empty_behavior, strict_actions)
     document = core.Document(None, format=core.FORMAT_STANDARD)
     meta = doc._meta
     params = [('standardVersion', meta.standard_version)] + \

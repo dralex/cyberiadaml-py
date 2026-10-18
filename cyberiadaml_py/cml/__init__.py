@@ -44,7 +44,7 @@ from .enums import (DocumentFormat, formatLegacyYED,
                     formatLegacyYEDBerloga16, formatLegacyYEDOstranna)
 from .geometry import Point, Polyline, Rect
 
-__version__ = '1.7.0'
+__version__ = '1.8.0'
 
 
 def is_legacy_yed_format(f: DocumentFormat) -> bool:

@@ -1,0 +1,15 @@
+LocalDocument: {Document: {id: '', name: 'Стандартный пылесос', geometry format: cyb, meta: {standard version: '1.0', platform: 'BearsAcademyHoover', name: 'Стандартный пылесос', author: 'Матросов В.М.', contact: 'matrosov@mail.ru', description: 'Пример описания схемы, 
+который может быть многострочным, потому что так удобнее', target: 'Hoover'}, elements: {State Machine: {id: 'G', name: 'G', elements: {Formal Comment: {id: 'nMeta', name: 'CGML_META', body: 'standardVersion/ 1.0
+
+platform/ BearsAcademyHoover
+
+name/ Стандартный пылесос
+
+author/ Матросов В.М.
+
+contact/ matrosov@mail.ru
+
+description/ Пример описания схемы, 
+который может быть многострочным, потому что так удобнее
+
+target/ Hoover'}, Composite State: {id: 'n0', name: 'Уборка мусора', actions: {a {entry}, a {exit}}, geometry: (-578.005; 438.187; 672.532; 802.963), elements: {Simple State: {id: 'n0::n1', name: 'Сближение', actions: {a {entry, behavior: 'МодульДвижения.ДвигатьсяКЦели()'}, a {exit}}, geometry: (-525.739; 609.669; 468; 170)}, Simple State: {id: 'n0::n2', name: 'Уборка', actions: {a {entry, behavior: 'Пылесос.УбратьЦель()'}, a {exit}}, geometry: (-630.271; 206.706; 468; 170)}}}, Simple State: {id: 'n3', name: 'Скан', actions: {a {entry, behavior: 'Сенсор.ПоискЦелиПоДистанции(мин)'}, a {exit, behavior: 'Сенсор.ОстановкаПоиска()'}}, geometry: (-1582.04; 606.498; 468; 330)}, Initial: {id: 'init', geometry: (-1472.04; 616.498)}, Transition: {id: 'init-n3', type: loc, source: 'init', target: 'n3'}, Transition: {id: 'n0-n3', type: loc, source: 'n0', target: 'n3', action: {trigger: 'АнализаторЦели.ЦельУстранена'}}, Transition: {id: 'n0-n3-2', type: loc, source: 'n0', target: 'n3', action: {trigger: 'АнализаторЦели.ЦельПотеряна'}}, Transition: {id: 'n3-n0::n1', type: loc, source: 'n3', target: 'n0::n1', action: {trigger: 'Сенсор.ЦельПолучена'}}, Transition: {id: 'n0::n1-n0::n2', type: loc, source: 'n0::n1', target: 'n0::n2', action: {trigger: 'ОружиеЦелевое.ЦельВошлаВЗонуДействия'}}, Transition: {id: 'n0::n2-n0::n1', type: loc, source: 'n0::n2', target: 'n0::n1', action: {trigger: 'ОружиеЦелевое.ЦельВышлаИзЗоныДействия'}}}}}, bounding rect: (-1582.04; 438.187; 1676.57; 802.963)}, file: 'tests/26-autoborder.py-input.graphml', format: cyberiada, format_str: 'Cyberiada-GraphML-Lapki'}

@@ -1,0 +1,28 @@
+Document: {id: '', name: 'Стандартный пылесос', geometry format: cyb, meta: {standard version: '1.0', platform: 'BerlogaAcademyHoover', geometry: 'short', name: 'Стандартный пылесос', author: 'Матросов В.М.', contact: 'matrosov@mail.ru', description: 'Пример описания схемы, который может быть многострочным,
+потому что так удобнее', target: 'Hoover'}, elements: {State Machine: {id: 'G', name: 'Робот-пылесос', elements: {Formal Comment: {id: 'nMeta', name: 'CGML_META', body: 'standardVersion/ 1.0
+
+platform/ BerlogaAcademyHoover
+
+geometry/ short
+
+name/ Стандартный пылесос
+
+author/ Матросов В.М.
+
+contact/ matrosov@mail.ru
+
+description/ Пример описания схемы, который может быть многострочным,
+потому что так удобнее
+
+target/ Hoover'}, Initial: {id: 'init', geometry: (200; 100)}, Composite State: {id: 'n0', name: 'Уборка мусора', geometry: (800; 0; 360; 760), elements: {Simple State: {id: 'n0::n1', name: 'Сближение', actions: {a {entry, behavior: 'МодульДвижения.ДвигатьсяКЦели()'}}, geometry: (50; 100; 300; 200)}, Simple State: {id: 'n0::n2', name: 'Уборка', actions: {a {entry, behavior: 'Пылесос.УбратьЦель()'}}, geometry: (50; 550; 300; 200)}}}, Simple State: {id: 'n3', name: 'Скан', actions: {a {entry, behavior: 'Сенсор.ПоискЦелиПоДистанции(мин)
+exit/
+Сенсор.ОстановкаПоиска()'}}, geometry: (0; 300; 300; 200)}, Transition: {id: 'init-n3', type: loc, source: 'init', target: 'n3'}, Transition: {id: 'n0-n3', type: loc, source: 'n0', target: 'n3', action: {trigger: 'АнализаторЦели.ЦельУстранена'}, label: (-300; 700)}, Transition: {id: 'n0-n3-2', type: loc, source: 'n0', target: 'n3', action: {trigger: 'АнализаторЦели.ЦельПотеряна'}, label: (-400; 600)}, Transition: {id: 'n3-n0::n1', type: loc, source: 'n3', target: 'n0::n1', action: {trigger: 'Сенсор.ЦельПолучена'}, label: (600; 0)}, Transition: {id: 'n0::n1-n0::n2', type: loc, source: 'n0::n1', target: 'n0::n2', action: {trigger: 'Пылесос.ЦельВошлаВЗонуДействия'}, label: (50; 400)}, Transition: {id: 'n0::n2-n0::n1', type: loc, source: 'n0::n2', target: 'n0::n1', action: {trigger: 'Пылесос.ЦельВышлаИзЗоныДействия'}, label: (350; -200)}}}}, bounding rect: (0; 0; 1200; 760)}
+Document: {id: '', name: 'test-geometry-1', geometry format: cyb, meta: {standard version: '1.0', geometry: 'short', name: 'test-geometry-1', transition order: action first, event propagation: block events}, elements: {State Machine: {id: 'G', name: 'SM-0', elements: {Formal Comment: {id: 'nMeta', name: 'CGML_META', body: 'standardVersion/ 1.0
+
+geometry/ short
+
+name/ test-geometry-1
+
+transitionOrder/ actionFirst
+
+eventPropagation/ block'}, Composite State: {id: 'node-0', name: 'node 0', geometry: (-5; -5; 1125; 395), elements: {Composite State: {id: 'node-0-0', name: 'node 0-0', geometry: (45; 45; 740; 320), elements: {Initial: {id: 'node-0-0-0', geometry: (200; 70)}, Simple State: {id: 'node-0-0-1', name: 'node 0-0-1', geometry: (50; 90; 300; 200)}, Simple State: {id: 'node-0-0-2', name: 'node 0-0-2', geometry: (450; 90; 290; 200)}}, region: (0; 10; 740; 300)}, Simple State: {id: 'node-0-1', name: 'node 0-1', geometry: (795; 145; 300; 200)}}, region: (10; 10; 1105; 375)}, Transition: {id: 'edge-0', type: loc, source: 'node-0-0-1', target: 'node-0-0-1'}, Transition: {id: 'edge-1', type: loc, source: 'node-0-0-0', target: 'node-0-0-1'}, Transition: {id: 'edge-2', type: loc, source: 'node-0-0-1', target: 'node-0-0-2', action: {trigger: 'LABEL'}, label: (375; 135)}}}}, bounding rect: (-5; -5; 1125; 395)}

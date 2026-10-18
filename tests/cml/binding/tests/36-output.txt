@@ -1,0 +1,2 @@
+contained content check: 1
+escaping content check: 0
