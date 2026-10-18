@@ -43,5 +43,20 @@ The tests read the conformance examples and the Lapki dialect corpus kept in `te
 * Python 3.10 or newer - the core uses the standard library only
 * `pydantic` - the 1.x types
 * `poetry` - the development environment with the test and lint tools
+* `cmake` (version 3.16+) - for the Debian package
+
+## Installation
+
+With pip (PyPI, a virtual environment, Windows, macOS):
+
+    pip install cyberiadaml-py
+
+The Debian package `python3-cyberiadaml` installs the library into the system Python:
+
+    cmake -B build && cd build && ctest && cpack -G DEB
+    sudo apt install ./python3-cyberiadaml_1.8.0_all.deb
+
+`ctest` runs the tests with the Python CMake finds; it needs pytest and pydantic
+(`-DPython3_EXECUTABLE=...` selects another one).
 
 **Github: https://github.com/kruzhok-team/cyberiadaml-py**

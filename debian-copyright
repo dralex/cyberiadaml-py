@@ -1,0 +1,47 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: cyberiadaml-py
+Upstream-Contact: Alexey Fedoseev <aleksey@fedoseev.net>
+Source: https://github.com/kruzhok-team/cyberiadaml-py
+
+Files: *
+Copyright: 2024-2026 Maxim Klypin <kartoshka0302@mail.ru>
+           2024 Mikhail Chekan <chekoopa@mail.ru>
+           2026 Vitaliy Vyborov <thvitva@gmail.com>
+           2026 Shturmdog <gleb.homa6@gmail.com>
+           2026 Alexey Fedoseev <aleksey@fedoseev.net>
+License: LGPL-3+
+
+Files: cyberiadaml_py/core/* cyberiadaml_py/cml/* cyberiadaml_py/htgeom/*
+Copyright: 2026 Alexey Fedoseev <aleksey@fedoseev.net>
+License: LGPL-3+
+Comment: The core is a port of cgmlval (cyberiadaml-compat-tests, GPL-3+) and
+ htgeom a port of libhtreegeom (LGPL-3+); their author distributes the ports
+ under the LGPL-3+ of this library.
+
+Files: docs/*
+Copyright: 2026 Alexey Fedoseev <aleksey@fedoseev.net>
+License: GFDL-1.3
+
+License: LGPL-3+
+ This program is free software; you can redistribute it and/or modify it
+ under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation; either version 3 of the License, or (at your
+ option) any later version.
+ .
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ for more details.
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public
+ License version 3 can be found in "/usr/share/common-licenses/LGPL-3", and
+ the GNU General Public License version 3 it supplements in
+ "/usr/share/common-licenses/GPL-3".
+
+License: GFDL-1.3
+ Permission is granted to copy, distribute and/or modify this documentation
+ under the terms of the GNU Free Documentation License, Version 1.3 published
+ by the Free Software Foundation.
+ .
+ On Debian systems, the complete text of the GNU Free Documentation License
+ version 1.3 can be found in "/usr/share/common-licenses/GFDL-1.3".

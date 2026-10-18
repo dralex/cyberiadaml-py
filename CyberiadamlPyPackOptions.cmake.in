@@ -1,0 +1,28 @@
+set(CPACK_VERBATIM_VARIABLES YES)
+set(CPACK_PACKAGE_VERSION_MAJOR @PROJECT_VERSION_MAJOR@)
+set(CPACK_PACKAGE_VERSION_MINOR @PROJECT_VERSION_MINOR@)
+set(CPACK_PACKAGE_VERSION_PATCH @PROJECT_VERSION_PATCH@)
+set(CPACK_PACKAGE_VENDOR "Kruzhok Association")
+set(CPACK_PACKAGE_CONTACT "aleksey@fedoseev.net")
+set(CPACK_RESOURCE_FILE_LICENSE "@PROJECT_SOURCE_DIR@/LICENSE")
+set(CPACK_RESOURCE_FILE_README "@PROJECT_SOURCE_DIR@/README.md")
+
+# the pure Python package of the library
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
+set(CPACK_DEBIAN_PACKAGE_NAME "python3-cyberiadaml")
+set(CPACK_DEBIAN_PACKAGE_SECTION "python")
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "The pure Python library of the CyberiadaML HSM diagrams
+Reads, checks and writes the CyberiadaML-GraphML documents (PNST 1044-2025)
+in the strict and the permissive modes, the Lapki dialect included: the
+standard core (cyberiadaml_py.core), the 1.x interface of lapki-compiler
+(cyberiadaml_py) and the interface of the CyberiadaML module of
+libcyberiadamlpp-py with the geometry and the layered layout
+(cyberiadaml_py.cml).")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3 (>= 3.10), python3-pydantic (>= 2.6)")
+
+# a per-release build tags the version (e.g. 1.8.0+ubuntu2604)
+set(DISTRO_TAG "@DISTRO_TAG@")
+if(NOT DISTRO_TAG STREQUAL "")
+  set(CPACK_DEBIAN_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}+${DISTRO_TAG}")
+endif()

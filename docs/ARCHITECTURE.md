@@ -203,6 +203,18 @@ cyberiadaml_py/
 The core uses the standard library only (`xml.parsers.expat`, `xml.etree.ElementTree`). The 1.x
 types keep `pydantic`; `xmltodict` is no longer used. Python 3.10 or newer.
 
+## Packaging
+
+| Package | Contents | Needs |
+|---|---|---|
+| `cyberiadaml-py` (PyPI, Poetry) | the package `cyberiadaml_py` | Python 3.10+, `pydantic` 2.6+ |
+| `python3-cyberiadaml` (deb, `all`; CMake + CPack) | the package in `/usr/lib/python3/dist-packages`, the documents, the DEP-5 `copyright` | `python3 (>= 3.10)`, `python3-pydantic (>= 2.6)` |
+
+The version of the Debian package is the one of `pyproject.toml`; `-DDISTRO_TAG=ubuntu2604`
+tags a build for one release (`1.8.0+ubuntu2604`). The package does not conflict with
+`python3-libcyberiadamlpp`: the binding is the module `CyberiadaML`, this library
+`cyberiadaml_py`.
+
 ## Licences
 
 The library is distributed under the LGPL-3 (`LICENSE`), its documentation under the GFDL 1.3.

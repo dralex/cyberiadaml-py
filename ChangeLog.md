@@ -11,6 +11,7 @@ Added:
   the layered layout and its update).
 - the tests: the libcyberiadamlpp-py scripts of the geometry, the binding's geometry results on
   the examples.
+- the Debian package `python3-cyberiadaml` (CMake + CPack, `ctest` runs the tests).
 
 Changed:
 - the rounding of `round()` truncates and the `round` option of `encode` rounds the nodes with
