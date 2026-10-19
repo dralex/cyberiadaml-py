@@ -5,7 +5,7 @@ from typing import (
     DefaultDict,
     Literal,
     Optional,
-    TypeAlias
+    Union
 )
 
 from pydantic import BaseModel, Field
@@ -18,7 +18,7 @@ except ImportError:
     from cyberiadaml_py.types.cgml_scheme import CGMLDataNode, CGMLKeyNode
     from cyberiadaml_py.types.common import Point, Rectangle
 
-AvailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
+AvailableKeys = DefaultDict[str, List[CGMLKeyNode]]
 
 CGMLVertexType = Literal['choice', 'initial',
                          'final', 'terminate', 'shallowHistory', 'deepHistory']
@@ -38,7 +38,7 @@ class CGMLBaseVertex:
 
     type: str
     data: Optional[str] = None
-    position: Optional[Point | Rectangle] = None
+    position: Optional[Union[Point, Rectangle]] = None
     parent: Optional[str] = None
     formal_name: Optional[str] = None
     color: Optional[str] = None
@@ -88,7 +88,7 @@ class CGMLState:
     actions: str
     unknown_datanodes: List[CGMLDataNode]
     parent: Optional[str] = None
-    bounds: Optional[Rectangle | Point] = None
+    bounds: Optional[Union[Rectangle, Point]] = None
     color: Optional[str] = None
     submachine: Optional[str] = None
     collapsed: bool = False
@@ -212,7 +212,7 @@ class CGMLTransition:
     unknown_datanodes: List[CGMLDataNode]
     color: Optional[str] = None
     position: List[Point] = Field(default_factory=list)
-    label_position: Optional[Point | Rectangle] = None
+    label_position: Optional[Union[Point, Rectangle]] = None
     pivot: Optional[str] = None
     source_point: Optional[Point] = None
     target_point: Optional[Point] = None
@@ -267,11 +267,11 @@ class CGMLNote:
     """
 
     name: str
-    position: Optional[Point | Rectangle]
+    position: Optional[Union[Point, Rectangle]]
     text: str
     type: str
     unknown_datanodes: List[CGMLDataNode]
-    parent: str | None = None
+    parent: Optional[str] = None
     formal_name: Optional[str] = None
     markup: Optional[str] = None
     color: Optional[str] = None
@@ -367,14 +367,14 @@ class CGMLElements(BaseModel):
     functions: Dict[str, CGMLFunction]
 
 
-Vertex = (
-    CGMLFinal |
-    CGMLChoice |
-    CGMLInitialState |
-    CGMLTerminate |
-    CGMLShallowHistory |
-    CGMLDeepHistory |
-    CGMLEntryPoint |
-    CGMLExitPoint |
+Vertex = Union[
+    CGMLFinal,
+    CGMLChoice,
+    CGMLInitialState,
+    CGMLTerminate,
+    CGMLShallowHistory,
+    CGMLDeepHistory,
+    CGMLEntryPoint,
+    CGMLExitPoint,
     CGMLBaseVertex
-)
+]

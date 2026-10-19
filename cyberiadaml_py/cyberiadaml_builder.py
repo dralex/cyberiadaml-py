@@ -5,7 +5,7 @@ core model, the core writer writes it as a standard document. Function
 graphs, outside the standard, follow the state machines.
 """
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from cyberiadaml_py import core
 from cyberiadaml_py.core import writer
@@ -52,7 +52,7 @@ def create_empty_scheme() -> CGML:
     ))
 
 
-def _geometry(value) -> Optional[core.Point | core.Rect]:
+def _geometry(value) -> Optional[Union[core.Point, core.Rect]]:
     if isinstance(value, Rectangle):
         return core.Rect(value.x, value.y, value.width, value.height)
     if isinstance(value, Point):
@@ -60,7 +60,7 @@ def _geometry(value) -> Optional[core.Point | core.Rect]:
     return None
 
 
-def _shape(node: CGMLDataNode) -> Optional[core.Point | core.Rect]:
+def _shape(node: CGMLDataNode) -> Optional[Union[core.Point, core.Rect]]:
     if node.rect is not None:
         return core.Rect(node.rect.x, node.rect.y, node.rect.width,
                          node.rect.height)
@@ -206,7 +206,7 @@ class _MachineBuilder:
         refs = [d.content for d in state.unknown_datanodes
                 if d.key == 'dSubmachineState']
         ref = state.submachine or (refs[0] if refs else None)
-        node: core.State | core.SubmachineState
+        node: Union[core.State, core.SubmachineState]
         if ref is not None:
             node = core.SubmachineState(
                 state_id, None, name=state.name or None,
@@ -397,7 +397,7 @@ def _append_functions(text: str, functions: List[CGMLFunction]) -> str:
     graphs = []
     for func in functions:
         graph = _function_graph(func)
-        ET.indent(graph, space=INDENT, level=1)
+        writer.indent(graph, INDENT, 1)
         graphs.append(INDENT + ET.tostring(graph, encoding='unicode'))
     end = text.rindex('</graphml>')
     return text[:end] + '\n'.join(graphs) + '\n' + text[end:]

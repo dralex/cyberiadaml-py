@@ -1,6 +1,6 @@
 """Module contains types, that representing unprocessed CyberiadaML scheme."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic.dataclasses import dataclass
 from pydantic import Field, ConfigDict
@@ -31,7 +31,7 @@ class CGMLDataNode:
     key: str = Field(alias='@key')
     content: Optional[str] = Field(default=None, alias='#text')
     rect: Optional[CGMLRectNode] = None
-    point: Optional[CGMLPointNode | List[CGMLPointNode]] = None
+    point: Optional[Union[CGMLPointNode, List[CGMLPointNode]]] = None
 
 
 @dataclass(config=ConfigDict(extra='allow'))
@@ -51,7 +51,7 @@ class CGMLEdge:
     id: str = Field(alias='@id')
     source: str = Field(alias='@source')
     target: str = Field(alias='@target')
-    data: Optional[List[CGMLDataNode] | CGMLDataNode] = None
+    data: Optional[Union[List[CGMLDataNode], CGMLDataNode]] = None
 
 
 @dataclass(config=ConfigDict(extra='forbid'))
@@ -59,10 +59,11 @@ class CGMLGraph:
     """The type represents <graph> node."""
 
     id: str = Field(alias='@id')
-    data: List[CGMLDataNode] | CGMLDataNode = Field(default_factory=lambda: [])
+    data: Union[List[CGMLDataNode], CGMLDataNode] = Field(
+        default_factory=lambda: [])
     edgedefault: Optional[str] = Field(alias='@edgedefault', default=None)
-    node: Optional[List['CGMLNode'] | 'CGMLNode'] = None
-    edge: Optional[List[CGMLEdge] | CGMLEdge] = None
+    node: Optional[Union[List['CGMLNode'], 'CGMLNode']] = None
+    edge: Optional[Union[List[CGMLEdge], CGMLEdge]] = None
 
 
 @dataclass(config=ConfigDict(extra='forbid'))
@@ -70,18 +71,18 @@ class CGMLNode:
     """The type represents <node> node."""
 
     id: str = Field(alias='@id')
-    graph: Optional[CGMLGraph | List[CGMLGraph]] = None
-    data: List[CGMLDataNode] | CGMLDataNode | None = None
+    graph: Optional[Union[CGMLGraph, List[CGMLGraph]]] = None
+    data: Optional[Union[List[CGMLDataNode], CGMLDataNode]] = None
 
 
 @dataclass(config=ConfigDict(extra='forbid'))
 class CGMLGraphml:
     """The type represents <graphml> node."""
 
-    data: CGMLDataNode | List[CGMLDataNode]
+    data: Union[CGMLDataNode, List[CGMLDataNode]]
     xmlns: str = Field(alias='@xmlns')
-    key: Optional[List[CGMLKeyNode] | CGMLKeyNode] = None
-    graph: Optional[List[CGMLGraph] | CGMLGraph] = None
+    key: Optional[Union[List[CGMLKeyNode], CGMLKeyNode]] = None
+    graph: Optional[Union[List[CGMLGraph], CGMLGraph]] = None
 
 
 @dataclass(config=ConfigDict(extra='forbid'))

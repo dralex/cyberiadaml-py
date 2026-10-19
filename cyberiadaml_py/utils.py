@@ -1,11 +1,11 @@
 """Module implements small utility functions."""
-from typing import List, TypeVar
+from typing import List, Optional, TypeVar, Union
 
 ListType = TypeVar('ListType')
 
 
 def to_list(
-    nodes: List[ListType] | None | ListType
+    nodes: Optional[Union[List[ListType], ListType]]
 ) -> List[ListType]:
     """Return list of objects."""
     if nodes is None:

@@ -231,8 +231,29 @@ class _Writer:
             self.machine(graphs, machine, index == 0)
         self.keys(root)
         root.extend(list(graphs))
-        ET.indent(root, space=INDENT)
+        indent(root)
         return DECLARATION + ET.tostring(root, encoding='unicode') + '\n'
+
+
+def indent(element: ET.Element, space: str = INDENT, level: int = 0) -> None:
+    """Indent an element tree in place as ElementTree.indent does (3.9+)."""
+    if len(element):
+        _indent(element, space, level)
+
+
+def _indent(element: ET.Element, space: str, level: int) -> None:
+    inner = '\n' + space * (level + 1)
+    if not element.text or not element.text.strip():
+        element.text = inner
+    child = element[0]
+    for child in element:
+        if len(child):
+            _indent(child, space, level + 1)
+        if not child.tail or not child.tail.strip():
+            child.tail = inner
+    # the last child closes the parent at its level
+    if not (child.tail or '').strip():
+        child.tail = '\n' + space * level
 
 
 def _parameters(params) -> str:

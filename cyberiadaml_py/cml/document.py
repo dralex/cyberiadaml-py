@@ -74,6 +74,12 @@ def _fail(message: str) -> errors.Exception:
     return errors.error(errors.ParametersException, message)
 
 
+def _write(path: str, text: str) -> None:
+    # LF line endings on every system, as the C library writes
+    with open(path, 'w', encoding='utf-8', newline='\n') as output:
+        output.write(text)
+
+
 GEOMETRY_NAMES = {
     'none': DocumentGeometryDeclaration.geometryDeclarationNone,
     'short': DocumentGeometryDeclaration.geometryDeclarationShort,
@@ -682,8 +688,7 @@ class LocalDocument(Document):
                            check_initial, strict_actions,
                            skip_empty_behavior)
         try:
-            pathlib.Path(self._file_path).write_text(
-                text, encoding='utf-8', newline='\n')
+            _write(self._file_path, text)
         except OSError:
             raise errors.error(errors.FileException,
                                'Cannot open file ' + self._file_path) \
@@ -698,8 +703,7 @@ class LocalDocument(Document):
         text = self.encode(f, round, skip_geometry, check_initial,
                            strict_actions, skip_empty_behavior)
         try:
-            pathlib.Path(path).write_text(text, encoding='utf-8',
-                                          newline='\n')
+            _write(path, text)
         except OSError:
             raise errors.error(errors.FileException,
                                'Cannot open file ' + path) from None

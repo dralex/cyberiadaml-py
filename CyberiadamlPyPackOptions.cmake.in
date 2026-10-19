@@ -19,7 +19,7 @@ standard core (cyberiadaml_py.core), the 1.x interface of lapki-compiler
 (cyberiadaml_py) and the interface of the CyberiadaML module of
 libcyberiadamlpp-py with the geometry and the layered layout
 (cyberiadaml_py.cml).")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3 (>= 3.10), python3-pydantic (>= 2.6)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3 (>= 3.8), python3-pydantic (>= 2.6)")
 
 # a per-release build tags the version (e.g. 1.8.0+ubuntu2604)
 set(DISTRO_TAG "@DISTRO_TAG@")

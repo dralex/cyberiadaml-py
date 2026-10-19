@@ -1,6 +1,5 @@
 """Module contains common geometry classes."""
 from dataclasses import dataclass
-from typing import TypeAlias
 
 
 @dataclass
@@ -21,4 +20,4 @@ class Rectangle:
     height: float
 
 
-Key: TypeAlias = str
+Key = str

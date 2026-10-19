@@ -14,6 +14,9 @@ Added:
 - the Debian package `python3-cyberiadaml` (CMake + CPack, `ctest` runs the tests).
 
 Changed:
+- Python 3.8.1 or newer (was 3.10): the 1.x types without the `X | Y` unions and `TypeAlias`,
+  the writers indent without `ElementTree.indent`, `save` without `write_text(newline=)`;
+  Python 3.8 takes pydantic 2.10.
 - the rounding of `round()` truncates and the `round` option of `encode` rounds the nodes with
   children and the transitions, as the C++ library does.
 

@@ -7,7 +7,7 @@ fills the 1.x types from its model.
 
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Optional, Tuple
+from typing import DefaultDict, Dict, List, Optional, Tuple, Union
 
 from cyberiadaml_py import core
 from cyberiadaml_py.types.cgml_scheme import (
@@ -123,7 +123,7 @@ def _text(value: Optional[str]) -> str:
     return (value or '').strip()
 
 
-def _geometry(value) -> Optional[Point | Rectangle]:
+def _geometry(value) -> Optional[Union[Point, Rectangle]]:
     if isinstance(value, core.Rect):
         return Rectangle(x=value.x, y=value.y, width=value.width,
                          height=value.height)
@@ -149,7 +149,7 @@ def _data_node(elem: ET.Element) -> CGMLDataNode:
     points = [CGMLPointNode(float(c.get('x', 0)), float(c.get('y', 0)))
               for c in elem if c.tag == 'point']
     content = _text(elem.text) or None
-    point: Optional[CGMLPointNode | List[CGMLPointNode]] = None
+    point: Optional[Union[CGMLPointNode, List[CGMLPointNode]]] = None
     if len(points) == 1:
         point = points[0]
     elif points:

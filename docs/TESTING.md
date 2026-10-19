@@ -61,7 +61,9 @@ The binding's view of the examples is recorded with the binding importable:
     poetry run flake8 cyberiadaml_py tests
     poetry run mypy cyberiadaml_py tests
 
-The GitHub workflows run the same three commands. `ctest` in a CMake build directory runs
+The GitHub workflows run the same three commands; pytest and mypy run on Python 3.8 and 3.10.
+Python 3.8 has its own locked versions of pydantic and the tools (the split constraints of
+`pyproject.toml`); Poetry 2 itself needs 3.9, so the workflows install it with pipx. `ctest` in a CMake build directory runs
 `pytest` with the Python CMake finds, before `cpack -G DEB` makes the Debian package.
 
 ## Outside the repository

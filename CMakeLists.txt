@@ -37,7 +37,7 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/debian-copyright
 
 # the tests need pytest and pydantic in this Python
 # (-DPython3_EXECUTABLE=... selects another one)
-find_package(Python3 3.10 COMPONENTS Interpreter)
+find_package(Python3 3.8 COMPONENTS Interpreter)
 if(Python3_FOUND)
   enable_testing()
   add_test(NAME pytest

@@ -40,8 +40,8 @@ The tests read the conformance examples and the Lapki dialect corpus kept in `te
 
 ## Requirements
 
-* Python 3.10 or newer - the core uses the standard library only
-* `pydantic` - the 1.x types
+* Python 3.8.1 or newer - the core uses the standard library only
+* `pydantic` (2.6+; 2.10 is the last for Python 3.8) - the 1.x types
 * `poetry` - the development environment with the test and lint tools
 * `cmake` (version 3.16+) - for the Debian package
 

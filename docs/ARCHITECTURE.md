@@ -201,14 +201,16 @@ cyberiadaml_py/
 ## Dependencies
 
 The core uses the standard library only (`xml.parsers.expat`, `xml.etree.ElementTree`). The 1.x
-types keep `pydantic`; `xmltodict` is no longer used. Python 3.10 or newer.
+types keep `pydantic`; `xmltodict` is no longer used. Python 3.8.1 or newer: no syntax or library
+call newer than 3.8 (`core.writer.indent` stands for `ElementTree.indent` of 3.9); Python 3.8 gets
+pydantic 2.10, the last version for it, and the development tools that still support it.
 
 ## Packaging
 
 | Package | Contents | Needs |
 |---|---|---|
-| `cyberiadaml-py` (PyPI, Poetry) | the package `cyberiadaml_py` | Python 3.10+, `pydantic` 2.6+ |
-| `python3-cyberiadaml` (deb, `all`; CMake + CPack) | the package in `/usr/lib/python3/dist-packages`, the documents, the DEP-5 `copyright` | `python3 (>= 3.10)`, `python3-pydantic (>= 2.6)` |
+| `cyberiadaml-py` (PyPI, Poetry) | the package `cyberiadaml_py` | Python 3.8.1+, `pydantic` 2.6+ |
+| `python3-cyberiadaml` (deb, `all`; CMake + CPack) | the package in `/usr/lib/python3/dist-packages`, the documents, the DEP-5 `copyright` | `python3 (>= 3.8)`, `python3-pydantic (>= 2.6)` |
 
 The version of the Debian package is the one of `pyproject.toml`; `-DDISTRO_TAG=ubuntu2604`
 tags a build for one release (`1.8.0+ubuntu2604`). The package does not conflict with
