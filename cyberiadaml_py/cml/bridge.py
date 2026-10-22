@@ -284,7 +284,8 @@ class Bridge:
                 element = subject.get_element()
                 if _skipped(element):
                     continue
-                target = element.get_target_element_id() \
+                # a link to a transition takes the frame of its source
+                target = element.get_source_element_id() \
                     if isinstance(element, Transition) else element.get_id()
                 edge = ht.Edge(subject.get_id(), comment.get_id(), target)
                 edge.source_point = _ht_point(subject._source)

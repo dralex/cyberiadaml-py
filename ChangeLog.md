@@ -20,6 +20,10 @@ Changed:
 - the rounding of `round()` truncates and the `round` option of `encode` rounds the nodes with
   children and the transitions, as the C++ library does.
 
+Fixed:
+- the target point of a comment link to a transition is relative to the transition's source
+  node (PNST 1044 9.1.1, libcyberiadaml 1.0.9).
+
 ## Version 1.7.0 (unreleased)
 
 Added:
