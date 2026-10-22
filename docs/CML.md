@@ -190,8 +190,8 @@ The names, the signatures and the overloads of the binding. Tier W unless marked
 | `ElementCollection` | R: `get_children`, `get_element`, `first_element`, `element_index`, `get_vertexes`, `find_element_by_id`, `find_elements_by_type(s)`, `has_initial`, `get_geometry_rect`, colour; W: `add_element`, `add_first_element`, `remove_element`, `clear`, `rebind_subjects`, `update_geometry` |
 | `State`, `SubmachineState` | R: actions, kind, `get_substates`, collapsed, region rect, reference; W: action edits, `set_collapsed`, `set_submachine_reference` |
 | `StateMachine` | R: `get_comments`, `get_transitions`; W: the copy constructor, `check_isomorphism` of equal machines |
-| vertices, `Choice`, `Comment`, `Transition` | R: the getters of the binding; W: constructors and updates, `add_subject`, `remove_subject`, `update_label` |
-| `Document`, `LocalDocument` | R: `decode`, `open`, `get_meta`, `meta`, `get_meta_element`, `get_state_machines`, `get_parent_sm`, `get_geometry_format`, the file identity; W: the factories, `encode`, `save`, `save_as`, `reset`, `set_name`, `set_file`, `update_metainfo_from_comment`, the copy constructors; G: `convert_geometry`, `set_geometry`, `clean_geometry`, `get_bound_rect`, `check_geometry`, `reconstruct_geometry`, `update_geometry` |
+| vertices, `Choice`, `Comment`, `Transition` | R: the getters of the binding; W: constructors and updates, `add_subject`, `remove_subject`, `update_subject`, `update_subject_geometry`, `update_label` |
+| `Document`, `LocalDocument` | R: `decode`, `open`, `get_meta`, `meta`, `get_meta_element`, `get_state_machines`, `get_parent_sm`, `get_geometry_format`, the file identity; W: the factories, `update_comment_subject`, `encode`, `save`, `save_as`, `reset`, `set_name`, `set_file`, `update_metainfo_from_comment`, the copy constructors; G: `convert_geometry`, `set_geometry`, `clean_geometry`, `get_bound_rect`, `check_geometry`, `reconstruct_geometry`, `update_geometry` |
 | every element | G: `get_bound_rect`, `clean_geometry`, `round_geometry`, the geometry setters |
 
 The binding's lists are Python lists; the out-parameter forms of `check_isomorphism` are not

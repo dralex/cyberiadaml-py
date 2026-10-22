@@ -36,9 +36,10 @@ from .enums import (DocumentEventPropagation, DocumentFormat,
                     DocumentTransitionOrder, docEventPropagationBlock,
                     docEventPropagationNone, docEventPropagationPropagate,
                     ElementType, TransitionType, actionTransition,
-                    commentSubjectData, commentSubjectName,
-                    elementChoice, elementComment, elementDeepHistory,
-                    elementEntryPoint, elementExitPoint, elementFinal,
+                    commentSubjectData, commentSubjectElement,
+                    commentSubjectName, elementChoice, elementComment,
+                    elementDeepHistory, elementEntryPoint, elementExitPoint,
+                    elementFinal,
                     elementFormalComment, elementInitial, elementRoot,
                     elementShallowHistory, elementSM, elementTerminate,
                     elementTransition, formatCyberiada10, formatDetect,
@@ -598,6 +599,42 @@ class Document(ElementCollection):
                                      **geometry)
         comment._subjects.append(subject)
         self._geometry(*geometry.values())
+        return copying.copy(subject)
+
+    def update_comment_subject(self, comment: Comment, index: int, element,
+                               type=commentSubjectElement,
+                               fragment: str = '') -> CommentSubject:
+        """Point subject index at a new element, type or fragment."""
+        if comment is None:
+            raise _fail('No parent element')
+        if element is None:
+            raise _fail('Empty element')
+        if element.get_type() in (elementRoot, elementSM):
+            raise _fail('Bad element to comment')
+        if element is comment:
+            raise _fail('A comment cannot be its own subject')
+        if not 0 <= index < len(comment._subjects):
+            raise _fail('Bad comment subject index')
+        if type != commentSubjectElement and not fragment:
+            raise _fail('Empty string parameter')
+        old = comment._subjects[index]
+        same = old._element is element
+        id_ = old._id
+        if not same:
+            taken = {s.get_id() for s in comment.get_subjects()}
+            base = id_ = '%s-%s' % (comment.get_id(), element.get_id())
+            number = 0
+            while id_ in taken:
+                id_ = '%s#%d' % (base, number)
+                number += 1
+        geometry = {'source': old._source, 'polyline': old._polyline}
+        if type == commentSubjectElement:
+            if same and old._type == commentSubjectElement:
+                geometry['target'] = old._target
+            subject = CommentSubject(id_, element, **geometry)
+        else:
+            subject = CommentSubject(id_, element, type, fragment, **geometry)
+        comment._subjects[index] = subject
         return copying.copy(subject)
 
     def add_comment_to_element(self, comment, element, *args,

@@ -1,0 +1,10 @@
+geometry: {id: 'n0-s1', type: element, to: 's1', source point: (-50; -20), target point: (25; 25), polyline: [ (-20; -60) ]}
+retarget: {id: 'n0-s2', type: element, to: 's2', source point: (-50; -20), polyline: [ (-20; -60) ]}
+order kept: s1-s2
+fragment: {id: 'n0-s2', type: data, to: 's2', fragment: 'init', source point: (-50; 0)}
+replaced: {id: 'link', type: element, to: 's1-s2', source point: (0; -20)}
+refused the machine: True
+refused the comment itself: True
+refused a bad index: True
+refused an empty fragment: True
+refused a bad geometry index: True

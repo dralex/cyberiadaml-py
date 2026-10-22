@@ -12,6 +12,9 @@ Added:
 - the tests: the libcyberiadamlpp-py scripts of the geometry, the binding's geometry results on
   the examples.
 - the Debian package `python3-cyberiadaml` (CMake + CPack, `ctest` runs the tests).
+- `cml`: `Comment.update_subject`, `Comment.update_subject_geometry` and
+  `Document.update_comment_subject`, a comment subject changed in place (libcyberiadamlpp-py
+  1.0.9); the binding scripts from libcyberiadamlpp-py 88942fa.
 - the layout and the update give the comment links their ends (libhtreegeom 1.3): the links to
   the elements and to the transitions both ends, the links to the fragments the source point.
 

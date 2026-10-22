@@ -466,6 +466,28 @@ class Comment(Element):
         self._subjects.append(copying.copy(subject))
         return self._subjects[-1]
 
+    def _subject_at(self, index: int) -> CommentSubject:
+        if not 0 <= index < len(self._subjects):
+            raise errors.error(errors.ParametersException,
+                               'Bad comment subject index')
+        return self._subjects[index]
+
+    def update_subject(self, index: int,
+                       subject: CommentSubject) -> CommentSubject:
+        self._subject_at(index)
+        self._subjects[index] = copying.copy(subject)
+        return copying.copy(self._subjects[index])
+
+    def update_subject_geometry(self, index: int, source: Point,
+                                target: Optional[Point] = None,
+                                polyline: Optional[Polyline] = None) -> None:
+        # a fragment subject keeps no target point (PNST 1044 9.1.1)
+        s = self._subject_at(index)
+        s._source = _point(source)
+        s._target = Point() if s.has_fragment() else _point(target)
+        s._polyline = polyline.copy() if polyline is not None \
+            else Polyline()
+
     def remove_subject(self, *args) -> None:
         if len(args) == 1 and not isinstance(args[0], CommentSubjectType):
             index = args[0]
