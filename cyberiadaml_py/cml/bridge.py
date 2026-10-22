@@ -32,7 +32,8 @@ from .. import htgeom
 from ..htgeom import types as ht
 from .elements import (Choice, Comment, CommentSubject, Element, State,
                        StateMachine, SubmachineState, Transition, Vertex)
-from .enums import (TransitionType, actionTransition, elementCompositeState,
+from .enums import (TransitionType, actionTransition, commentSubjectElement,
+                    elementCompositeState,
                     elementDeepHistory, elementEntryPoint, elementExitPoint,
                     elementFinal, elementFormalComment, elementInitial,
                     elementShallowHistory, elementTerminate,
@@ -288,6 +289,11 @@ class Bridge:
                 target = element.get_source_element_id() \
                     if isinstance(element, Transition) else element.get_id()
                 edge = ht.Edge(subject.get_id(), comment.get_id(), target)
+                edge.type = ht.EDGE_LINK \
+                    if subject.get_type() == commentSubjectElement \
+                    else ht.EDGE_CHUNK_LINK
+                if isinstance(element, Transition):
+                    edge.target_edge_id = element.get_id()
                 edge.source_point = _ht_point(subject._source)
                 edge.target_point = _ht_point(subject._target)
                 edge.polyline = _ht_polyline(subject._polyline)
@@ -297,6 +303,8 @@ class Bridge:
         for edge in tree.edges:
             edge.source = ht.find_node_by_id(tree.nodes, edge.source_id)
             edge.target = ht.find_node_by_id(tree.nodes, edge.target_id)
+            edge.target_edge = ht.find_edge_by_id(tree.edges,
+                                                  edge.target_edge_id)
             if edge.source is None or edge.target is None:
                 raise ht.GeometryError(
                     ht.BAD_PARAMETER, 'Cannot find htree node by id '

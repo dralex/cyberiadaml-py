@@ -2171,6 +2171,22 @@ def _place_comments(ctx: Context, nodes: List[Node]) -> None:
             _place_comments(ctx, n.children)
 
 
+def _attach_links(ctx: Context) -> None:
+    # The comment links once the comments are placed: the update keeps a
+    # drawn link whose ends stayed (or moved alike) and whose commented edge
+    # was not routed again, and fills only the missing ends.
+    from .transform import attach_link
+    for e in ctx.tree.edges:
+        if e.source is None or e.target is None or \
+                not node_is_comment(e.source):
+            continue
+        if ctx.update and not (_edge_kept(ctx, e) and
+                               (e.target_edge is None or
+                                e.target_edge not in ctx.routed)):
+            _drop_edge_geometry(e)
+        attach_link(e)
+
+
 # the tree layout
 
 
@@ -2216,6 +2232,7 @@ def _tree_pass(tree: Tree, reconstruct_sm: bool, opts: LayoutOptions,
     _container(ctx, 0)
     _route_edges(ctx)
     _place_comments(ctx, tree.nodes)
+    _attach_links(ctx)
     grow_sm_border(tree)
     return _final_shape(ctx)
 

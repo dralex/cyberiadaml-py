@@ -29,7 +29,8 @@ from typing import List, Optional, Tuple
 from .segment import rect_corners, segment_rect_points
 from .types import (BAD_PARAMETER, COMMENT, COORD_ABSOLUTE, COORD_EPS,
                     COORD_LEFT_TOP, COORD_LOCAL_CENTER, COORD_NONE,
-                    EDGE_BORDER, EDGE_CENTER, INVALID, LENGTH_EPS, PADDING,
+                    EDGE_BORDER, EDGE_CENTER, EDGE_CHUNK_LINK, INVALID,
+                    LENGTH_EPS, PADDING,
                     RECT_EPS, TREE, Document, Edge, GeometryError, Node,
                     Point, Rect, Tree, f32, rect_center_point)
 
@@ -191,6 +192,8 @@ def copy_node(src: Node) -> Node:
 
 def copy_edge(src: Edge) -> Edge:
     dst = Edge(src.id, src.source_id, src.target_id)
+    dst.type = src.type
+    dst.target_edge_id = src.target_edge_id
     if src.polyline is not None:
         dst.polyline = [p.copy() for p in src.polyline]
     for name in ('source_point', 'target_point', 'label_point',
@@ -201,7 +204,7 @@ def copy_edge(src: Edge) -> Edge:
 
 
 def copy_document(src: Document) -> Document:
-    from .types import find_node_by_id
+    from .types import find_edge_by_id, find_node_by_id
     dst = Document(src.node_coord_format, src.edge_coord_format,
                    src.edge_pl_coord_format, src.edge_format)
     for tree in src.trees:
@@ -212,6 +215,8 @@ def copy_document(src: Document) -> Document:
             e.source = find_node_by_id(copy.nodes, e.source_id)
             e.target = find_node_by_id(copy.nodes, e.target_id)
             copy.edges.append(e)
+        for e in copy.edges:
+            e.target_edge = find_edge_by_id(copy.edges, e.target_edge_id)
         dst.trees.append(copy)
     if src.bounding_rect is not None:
         dst.bounding_rect = src.bounding_rect.copy()
@@ -322,6 +327,96 @@ def project_edge_to_borders(edge: Edge) -> None:
                                         r.width, r.height)
         if crossings:
             tp.x, tp.y = crossings[0]
+
+
+def _node_centre(n: Node) -> Optional[Point]:
+    if n.rect is not None:
+        return Point(n.rect.x + n.rect.width / 2.0,
+                     n.rect.y + n.rect.height / 2.0)
+    if n.point is not None:
+        return n.point.copy()
+    return None
+
+
+def _border_toward(n: Node, toward: Point) -> Point:
+    # The border point of a node from its centre toward a point: a point
+    # node is its own end, a rect overlapping the point keeps the centre.
+    result = _node_centre(n)
+    assert result is not None
+    if n.rect is None or (abs(toward.x - result.x) < COORD_EPS and
+                          abs(toward.y - result.y) < COORD_EPS):
+        return result
+    r = n.rect
+    crossings = segment_rect_points((result.x, result.y),
+                                    (toward.x, toward.y), r.x, r.y,
+                                    r.width, r.height)
+    if crossings:
+        result.x, result.y = crossings[0]
+    return result
+
+
+LINK_END_MARGIN = 0.25  # a link foot keeps this part of the end segments free
+
+
+def _edge_path_nearest(e: Edge, p: Point) -> Optional[Point]:
+    # The point of the path of an edge nearest to p, off the ends of the
+    # path (the arrow); an end without a stored point is its node centre.
+    if e.source is None or e.target is None:
+        return None
+    start = e.source_point.copy() if e.source_point is not None \
+        else _node_centre(e.source)
+    end = e.target_point.copy() if e.target_point is not None \
+        else _node_centre(e.target)
+    if start is None or end is None:
+        return None
+    path = [start] + [q.copy() for q in e.polyline or []] + [end]
+    best: Optional[float] = None
+    result: Optional[Point] = None
+    for i in range(len(path) - 1):
+        a, b = path[i], path[i + 1]
+        dx, dy = b.x - a.x, b.y - a.y
+        len2 = dx * dx + dy * dy
+        lo = LINK_END_MARGIN if i == 0 else 0.0
+        hi = 1.0 - LINK_END_MARGIN if i + 2 == len(path) else 1.0
+        t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2 \
+            if len2 > COORD_EPS else 0.0
+        t = lo if t < lo else (hi if t > hi else t)
+        q = Point(a.x + t * dx, a.y + t * dy)
+        d = (q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y)
+        if best is None or d < best:
+            best, result = d, q
+    return result
+
+
+def attach_link(edge: Edge) -> None:
+    """Fill the missing ends of a comment link, the stored ones kept."""
+    source, target = edge.source, edge.target
+    if source is None or target is None:
+        raise GeometryError(BAD_PARAMETER, 'an unresolved link')
+    centre = _node_centre(source)
+    anchor = _node_centre(target)
+    if centre is None or anchor is None:
+        return
+    last = edge.polyline[-1] if edge.polyline else None
+    if edge.type == EDGE_CHUNK_LINK:
+        edge.target_point = None
+    elif edge.target_point is not None:
+        anchor = edge.target_point
+    elif edge.target_edge is not None:
+        foot = _edge_path_nearest(edge.target_edge,
+                                  last if last is not None else centre)
+        if foot is None:
+            return
+        anchor = foot
+        edge.target_point = foot.copy()
+    else:
+        start = last if last is not None else \
+            (edge.source_point if edge.source_point is not None else centre)
+        anchor = _border_toward(target, start)
+        edge.target_point = anchor.copy()
+    if edge.source_point is None:
+        edge.source_point = _border_toward(
+            source, edge.polyline[0] if edge.polyline else anchor)
 
 
 def _edges_labels_to_absolute(doc: Document) -> None:

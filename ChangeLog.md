@@ -12,6 +12,8 @@ Added:
 - the tests: the libcyberiadamlpp-py scripts of the geometry, the binding's geometry results on
   the examples.
 - the Debian package `python3-cyberiadaml` (CMake + CPack, `ctest` runs the tests).
+- the layout and the update give the comment links their ends (libhtreegeom 1.3): the links to
+  the elements and to the transitions both ends, the links to the fragments the source point.
 
 Changed:
 - Python 3.8.1 or newer (was 3.10): the 1.x types without the `X | Y` unions and `TypeAlias`,

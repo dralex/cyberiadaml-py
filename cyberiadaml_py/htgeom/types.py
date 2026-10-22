@@ -35,6 +35,12 @@ EDGE_NONE = 0
 EDGE_CENTER = 1             # the ends are bound to the node centres
 EDGE_BORDER = 2             # the ends are on the node borders
 
+# the edge kinds: a transition or a comment link (a link to a fragment has no
+# target point, a link to an edge ends on its path, PNST 1044 9.1.1)
+EDGE_TRANSITION = 0
+EDGE_LINK = 1
+EDGE_CHUNK_LINK = 2
+
 # the node types
 TREE = 0
 SIMPLE = 1
@@ -199,6 +205,10 @@ class Edge:
         self.target_point: Optional[Point] = None
         self.label_point: Optional[Point] = None
         self.label_rect: Optional[Rect] = None
+        self.type = EDGE_TRANSITION
+        # a link to an edge: the commented edge, whose source is the target
+        self.target_edge_id: Optional[str] = None
+        self.target_edge: Optional['Edge'] = None
 
     def __repr__(self) -> str:
         return 'Edge(%s)' % self.id
@@ -247,6 +257,13 @@ class LayoutOptions:
         for name in vars(self):
             setattr(result, name, getattr(self, name))
         return result
+
+
+def find_edge_by_id(edges: List[Edge], id_: Optional[str]) -> Optional[Edge]:
+    for edge in edges:
+        if id_ is not None and edge.id == id_:
+            return edge
+    return None
 
 
 def find_node_by_id(nodes: List[Node], id_: str) -> Optional[Node]:
