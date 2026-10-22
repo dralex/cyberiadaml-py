@@ -154,6 +154,20 @@
         "CGML-8.3-3"
       ]
     },
+    "ext/F-EXT-LINK-GEO": {
+      "profile": "EXT-COMPLETENESS",
+      "requirements": [
+        "CGML-6.7-1",
+        "CGML-6.7-2",
+        "CGML-6.7-3",
+        "CGML-8.5-1",
+        "CGML-8.5-2",
+        "CGML-9.1-1-2",
+        "CGML-9.1-1-3-2",
+        "CGML-9.1-1-3-3",
+        "CGML-9.1-1-3-4"
+      ]
+    },
     "ext/F-EXT-D": {
       "profile": "EXT-DISPLAY",
       "requirements": [
