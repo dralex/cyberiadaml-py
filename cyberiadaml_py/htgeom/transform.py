@@ -363,11 +363,11 @@ def _inside_rect(p: Point, r: Rect) -> bool:
         r.y + COORD_EPS < p.y < r.y + r.height - COORD_EPS
 
 
-def _edge_path_nearest(e: Edge, p: Point,
-                       avoid: Optional[Rect] = None) -> Optional[Point]:
-    # The point of the path of an edge nearest to p, off the ends of the
-    # path (the arrow) and off its label rect when one is given; an end
-    # without a stored point is its node centre.
+def _edge_path_nearest(e: Edge, p: Point, avoid: Optional[Rect] = None,
+                       margin: float = LINK_END_MARGIN) -> Optional[Point]:
+    # The point of the path of an edge nearest to p, off the margin of the
+    # end segments (the arrow) and off its label rect when one is given; an
+    # end without a stored point is its node centre.
     if e.source is None or e.target is None:
         return None
     start = e.source_point.copy() if e.source_point is not None \
@@ -395,8 +395,8 @@ def _edge_path_nearest(e: Edge, p: Point,
         a, b = path[i], path[i + 1]
         dx, dy = b.x - a.x, b.y - a.y
         len2 = dx * dx + dy * dy
-        lo = LINK_END_MARGIN if i == 0 else 0.0
-        hi = 1.0 - LINK_END_MARGIN if i + 2 == len(path) else 1.0
+        lo = margin if i == 0 else 0.0
+        hi = 1.0 - margin if i + 2 == len(path) else 1.0
         t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2 \
             if len2 > COORD_EPS else 0.0
         t = lo if t < lo else (hi if t > hi else t)
@@ -413,8 +413,12 @@ def _edge_path_nearest(e: Edge, p: Point,
             candidate(a, dx, dy, (avoid.y - a.y) / dy, lo, hi)
             candidate(a, dx, dy, (avoid.y + avoid.height - a.y) / dy, lo, hi)
     if found[0] is None and avoid is not None:
-        # the whole path under the label
-        return _edge_path_nearest(e, p)
+        # the label covers the free middle: beside it, else the plain nearest
+        if margin > 0.0:
+            beside = _edge_path_nearest(e, p, avoid, 0.0)
+            if beside is not None:
+                return beside
+        return _edge_path_nearest(e, p, None, margin)
     return found[0]
 
 

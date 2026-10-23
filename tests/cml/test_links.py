@@ -58,6 +58,13 @@ def test_link_foot_beside_the_label():
     assert (link.target_point.x, link.target_point.y) == (380, 150)
 
 
+def test_link_foot_beside_a_wide_label():
+    ab, link = _edges()
+    ab.label_rect = ht.Rect(335, 140, 130, 20)
+    attach_link(link)
+    assert (link.target_point.x, link.target_point.y) == (335, 150)
+
+
 def test_chunk_link_without_target_point():
     _, link = _edges()
     link.type = ht.EDGE_CHUNK_LINK
