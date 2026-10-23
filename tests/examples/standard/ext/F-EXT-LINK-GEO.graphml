@@ -76,7 +76,7 @@ geometry/ full</data>
       </data>
     </edge>
     <edge id="a-b" source="a" target="b">
-      <data key="dData">GO/</data>
+      <data key="dData">GO [x &gt; 1]/ go()</data>
       <data key="dSourcePoint">
         <point x="100" y="25"/>
       </data>
@@ -107,6 +107,39 @@ geometry/ full</data>
       <data key="dChunk">run()</data>
       <data key="dSourcePoint">
         <point x="0" y="25"/>
+      </data>
+    </edge>
+    <edge id="c-a" source="c" target="a">
+      <data key="dPivot"/>
+      <data key="dGeometry">
+        <point x="-60" y="25"/>
+      </data>
+      <data key="dSourcePoint">
+        <point x="0" y="25"/>
+      </data>
+      <data key="dTargetPoint">
+        <point x="50" y="50"/>
+      </data>
+    </edge>
+    <edge id="c-a-b#1" source="c" target="a-b">
+      <data key="dPivot">dData</data>
+      <data key="dChunk">GO</data>
+      <data key="dSourcePoint">
+        <point x="30" y="0"/>
+      </data>
+    </edge>
+    <edge id="c-a-b#2" source="c" target="a-b">
+      <data key="dPivot">dData</data>
+      <data key="dChunk">x &gt; 1</data>
+      <data key="dSourcePoint">
+        <point x="50" y="0"/>
+      </data>
+    </edge>
+    <edge id="c-a-b#3" source="c" target="a-b">
+      <data key="dPivot">dData</data>
+      <data key="dChunk">go()</data>
+      <data key="dSourcePoint">
+        <point x="70" y="0"/>
       </data>
     </edge>
   </graph>

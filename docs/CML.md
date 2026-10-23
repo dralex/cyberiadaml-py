@@ -107,7 +107,7 @@ The core reads the document (permissive, or `strict=True`); `cml/reader.py` buil
 ### Differences from the binding
 
 Checked with the 53 binding test scripts of tiers R, W and G (`tests/cml/binding/`), with
-`tests/cml/binding-view.json` (the binding's dumps of the 131 examples), with
+`tests/cml/binding-view.json` (the binding's dumps of the 142 examples), with
 `tests/cml/binding-layout.json` (its geometry results on them) and with the consumers' own tests
 run on both:
 

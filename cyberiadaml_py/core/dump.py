@@ -190,6 +190,15 @@ def _put_link(out, depth, link):
     if link.chunk is not None:
         line += ' chunk %s' % _quote(link.chunk)
     out.put(depth, line)
+    if link.polyline:
+        out.put(depth + 1, 'polyline: %s' %
+                ' '.join(_geometry_text(p) for p in link.polyline))
+    if link.source_point is not None:
+        out.put(depth + 1, 'source-point: %s' %
+                _geometry_text(link.source_point))
+    if link.target_point is not None:
+        out.put(depth + 1, 'target-point: %s' %
+                _geometry_text(link.target_point))
 
 
 def render(document):

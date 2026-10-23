@@ -209,6 +209,14 @@ def _has_geometry(document) -> bool:
     return False
 
 
+def _empty_chunks(document) -> Set[str]:
+    # the links with a present but empty dChunk: the binding keeps the
+    # empty fragment
+    return {'edge[id=%s]' % link.id
+            for machine in document.machines for link in machine.links
+            if link.chunk is not None and not link.chunk.strip()}
+
+
 def _error(findings: list, text: str, strict: bool) -> errors.Exception:
     if 'Cyberiada-GraphML' not in text and \
             any(mark in text for mark in YED_MARKS):
@@ -242,6 +250,7 @@ class _Reader:
         self.skip_empty_actions = skip_empty_actions
         self.strict = strict
         self.elements: Dict[str, Element] = {}
+        self.machine_ids: Set[str] = set()
         self.initials: Set[Optional[str]] = set()
         self.regions: Set[int] = set()   # states whose children had a region
         self.original: Dict[str, str] = {}
@@ -286,6 +295,7 @@ class _Reader:
 
     def machine(self, document, machine) -> StateMachine:
         name = _rstrip(machine.name) or machine.id or ''
+        self.machine_ids.add(machine.id or '')
         sm = StateMachine(self.doc, machine.id or '', name,
                           _rect(machine.geometry) if self.geometry else None)
         self.doc._attach(sm)
@@ -454,9 +464,19 @@ class _Reader:
     def link(self, edge) -> None:
         comment = self.elements.get(self.ident(edge.source))
         target = self.elements.get(self.ident(edge.target))
-        if not isinstance(comment, Comment) or target is None:
+        if not isinstance(comment, Comment):
             raise errors.error(errors.AssertException,
                                'bad comment link %s' % edge.id)
+        if target is None:
+            if self.ident(edge.target) in self.machine_ids:
+                # the binding resolves the graph id to the machine node and
+                # fails its internal check
+                raise errors.error(errors.AssertException,
+                                   'bad comment link %s' % edge.id)
+            # the subject is in another machine or absent: a format error
+            raise errors.error(errors.CybMLException,
+                               'cannot find source/target node for edge %s'
+                               % edge.id)
         pivot = (edge.pivot or '').strip()
         kind = {'dName': commentSubjectName,
                 'dData': commentSubjectData}.get(pivot, commentSubjectElement)
@@ -518,10 +538,13 @@ def read(doc: Document, text: str, gf: DocumentGeometryFormat,
         document = core.read(text, strict=strict)
     except core.CGMLError as err:
         raise _error(err.findings, text, strict) from None
+    empty_chunks = _empty_chunks(document)
     refused = [f for f in document.findings if f.severity == core.ERROR and
                f.rule in LENIENT_REFUSED and not (
                    f.rule == 'key-declarations' and
-                   f.message.startswith(UNDECLARED_KEY))]
+                   f.message.startswith(UNDECLARED_KEY)) and not (
+                   f.rule == 'chunk-required' and
+                   (f.path or '').endswith(tuple(empty_chunks)))]
     if refused:
         raise _error(refused, text, strict)
     arena = ARENA.search(text) is not None

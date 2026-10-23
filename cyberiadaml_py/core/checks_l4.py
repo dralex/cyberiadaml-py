@@ -401,6 +401,39 @@ def _transition_geometry_endpoints(ctx):
                     ctx.emit('transition-geometry-endpoints',
                              'transition geometry while the endpoint node '
                              '%r has none' % endpoint, elem=transition.elem)
+        # a link to a transition is drawn against the transition's source
+        frames = {t.id: t.source for t in machine.transitions}
+        for link in machine.links:
+            if not (link.polyline or link.source_point or link.target_point):
+                continue
+            for endpoint in (link.source, frames.get(link.target, link.target)):
+                if endpoint in geometry and not geometry[endpoint]:
+                    ctx.emit('link-geometry-endpoints',
+                             'comment link geometry while the node %r has '
+                             'none' % endpoint, elem=link.elem)
+
+
+declare('link-geometry-endpoints', 'CGML-6.7-6', 4, WARNING,
+        'comment link geometry requires drawn ends: the comment and the '
+        'subject node, or the source node of the commented transition')
+
+
+@rule('link-geometry-ends', 'CGML-9.1-2', 4, WARNING,
+      'a full-geometry document gives every comment link its ends')
+def link_geometry_ends(ctx):
+    if ctx.model.geometry_mode != 'full':
+        return
+    for machine in ctx.model.machines:
+        for link in machine.links:
+            if link.source_point is None:
+                ctx.emit('link-geometry-ends',
+                         'comment link %r has no source point' % link.id,
+                         elem=link.elem)
+            if link.target_point is None and \
+                    (link.pivot or '').strip() not in ('dName', 'dData'):
+                ctx.emit('link-geometry-ends',
+                         'comment link %r to %r has no target point' %
+                         (link.id, link.target), elem=link.elem)
 
 
 ENTRY_EXIT = ('entryPoint', 'exitPoint')
@@ -444,11 +477,31 @@ def _chunk_substring(ctx):
             target = nodes.get(link.target, edges.get(link.target))
             if target is None:
                 continue
+            if link.target in edges and pivot == 'dName':
+                continue            # link-name-on-transition (8.5-4)
             aspect = _aspect(target, pivot)
-            if chunk not in (aspect or ''):
+            if aspect is None:
+                ctx.emit('chunk-substring',
+                         'the subject %r of the comment link %r has no %s '
+                         'to comment' % (link.target, link.id, pivot),
+                         elem=link.elem)
+            elif chunk not in aspect:
                 ctx.emit('chunk-substring',
                          'dChunk %r is not found in the %s of %r' %
                          (chunk, pivot, link.target), elem=link.elem)
+
+
+@rule('link-name-on-transition', 'CGML-8.5-4', 4, ERROR,
+      'a comment link to a transition comments its label, not a name')
+def link_name_on_transition(ctx):
+    for machine in ctx.model.machines:
+        edges = {t.id for t in machine.transitions}
+        for link in machine.links:
+            if link.target in edges and (link.pivot or '').strip() == 'dName':
+                ctx.emit('link-name-on-transition',
+                         'comment link %r names a fragment of the transition '
+                         '%r, which has no name' % (link.id, link.target),
+                         elem=link.elem)
 
 
 @rule('submachine-self-reference', 'CGML-8.1-1-1', 4, ERROR,
