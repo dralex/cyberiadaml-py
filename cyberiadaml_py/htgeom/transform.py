@@ -358,9 +358,16 @@ def _border_toward(n: Node, toward: Point) -> Point:
 LINK_END_MARGIN = 0.25  # a link foot keeps this part of the end segments free
 
 
-def _edge_path_nearest(e: Edge, p: Point) -> Optional[Point]:
+def _inside_rect(p: Point, r: Rect) -> bool:
+    return r.x + COORD_EPS < p.x < r.x + r.width - COORD_EPS and \
+        r.y + COORD_EPS < p.y < r.y + r.height - COORD_EPS
+
+
+def _edge_path_nearest(e: Edge, p: Point,
+                       avoid: Optional[Rect] = None) -> Optional[Point]:
     # The point of the path of an edge nearest to p, off the ends of the
-    # path (the arrow); an end without a stored point is its node centre.
+    # path (the arrow) and off its label rect when one is given; an end
+    # without a stored point is its node centre.
     if e.source is None or e.target is None:
         return None
     start = e.source_point.copy() if e.source_point is not None \
@@ -370,8 +377,20 @@ def _edge_path_nearest(e: Edge, p: Point) -> Optional[Point]:
     if start is None or end is None:
         return None
     path = [start] + [q.copy() for q in e.polyline or []] + [end]
-    best: Optional[float] = None
-    result: Optional[Point] = None
+    best: List[Optional[float]] = [None]
+    found: List[Optional[Point]] = [None]
+
+    def candidate(a: Point, dx: float, dy: float, t: float, lo: float,
+                  hi: float) -> None:
+        if t < lo - COORD_EPS or t > hi + COORD_EPS:
+            return
+        q = Point(a.x + t * dx, a.y + t * dy)
+        if avoid is not None and _inside_rect(q, avoid):
+            return
+        d = (q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y)
+        if best[0] is None or d < best[0]:
+            best[0], found[0] = d, q
+
     for i in range(len(path) - 1):
         a, b = path[i], path[i + 1]
         dx, dy = b.x - a.x, b.y - a.y
@@ -381,11 +400,22 @@ def _edge_path_nearest(e: Edge, p: Point) -> Optional[Point]:
         t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2 \
             if len2 > COORD_EPS else 0.0
         t = lo if t < lo else (hi if t > hi else t)
-        q = Point(a.x + t * dx, a.y + t * dy)
-        d = (q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y)
-        if best is None or d < best:
-            best, result = d, q
-    return result
+        candidate(a, dx, dy, t, lo, hi)
+        if avoid is None:
+            continue
+        # the nearest point under the label: its border crossings and the ends
+        candidate(a, dx, dy, lo, lo, hi)
+        candidate(a, dx, dy, hi, lo, hi)
+        if abs(dx) > COORD_EPS:
+            candidate(a, dx, dy, (avoid.x - a.x) / dx, lo, hi)
+            candidate(a, dx, dy, (avoid.x + avoid.width - a.x) / dx, lo, hi)
+        if abs(dy) > COORD_EPS:
+            candidate(a, dx, dy, (avoid.y - a.y) / dy, lo, hi)
+            candidate(a, dx, dy, (avoid.y + avoid.height - a.y) / dy, lo, hi)
+    if found[0] is None and avoid is not None:
+        # the whole path under the label
+        return _edge_path_nearest(e, p)
+    return found[0]
 
 
 def attach_link(edge: Edge) -> None:
@@ -403,8 +433,11 @@ def attach_link(edge: Edge) -> None:
     elif edge.target_point is not None:
         anchor = edge.target_point
     elif edge.target_edge is not None:
+        label = edge.target_edge.label_rect
+        if label is not None and (label.width <= 0.0 or label.height <= 0.0):
+            label = None
         foot = _edge_path_nearest(edge.target_edge,
-                                  last if last is not None else centre)
+                                  last if last is not None else centre, label)
         if foot is None:
             return
         anchor = foot

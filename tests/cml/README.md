@@ -9,6 +9,9 @@
 * `test_layout.py` runs the geometry scenarios of `tools/record_binding_layout.py` on every
   example (read in the Qt format, saved rounded, laid out, laid out after an edit, updated as
   drawn) and compares them with `binding-layout.json`, the binding's results;
+* `test_links.py` checks the comment link ends of the htgeom port (the foot on a commented
+  transition, beside its label, the fragment links, the stored ends kept) as the libhtreegeom
+  tests 49 and 50 do;
 * `test_view.py` reads every example of `tests/examples` with `cml` and compares the dumps with
   `binding-view.json`, the binding's dumps recorded by `tools/record_binding_view.py`; the known
   differences are listed in the test and in `docs/CML.md`.

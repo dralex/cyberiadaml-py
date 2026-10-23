@@ -16,7 +16,8 @@ Added:
   `Document.update_comment_subject`, a comment subject changed in place (libcyberiadamlpp-py
   1.0.9); the binding scripts from libcyberiadamlpp-py 88942fa.
 - the layout and the update give the comment links their ends (libhtreegeom 1.3): the links to
-  the elements and to the transitions both ends, the links to the fragments the source point.
+  the elements and to the transitions both ends (off the arrow and the label), the links to the
+  fragments the source point.
 
 Changed:
 - Python 3.8.1 or newer (was 3.10): the 1.x types without the `X | Y` unions and `TypeAlias`,
