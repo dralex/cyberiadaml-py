@@ -19,7 +19,7 @@
 # along with this program. If not, see https://www.gnu.org/licenses/
 #
 # -----------------------------------------------------------------------------
-"""The comment links of the htgeom port beside the C++ tests 49 and 50."""
+"""The comment links of the htgeom port beside the C++ tests 49, 50 and 53."""
 from cyberiadaml_py.htgeom import types as ht
 from cyberiadaml_py.htgeom.transform import attach_link
 
@@ -80,3 +80,19 @@ def test_stored_ends_kept():
     link.target_point = ht.Point(320, 150)
     attach_link(link)
     assert (link.source_point.x, link.target_point.x) == (310, 320)
+
+
+def test_link_to_choice_on_its_rhombus():
+    # a link to a choice ends on an edge of its rhombus toward the comment,
+    # not on a vertex (test 53)
+    ch = _node(ht.SIMPLE, 'ch', (500, 100, 60, 60))
+    ch.role = ht.ROLE_CHOICE
+    c = _node(ht.COMMENT, 'c', (300, 400, 100, 40))
+    link = ht.Edge('l-c-ch', 'c', 'ch')
+    link.source, link.target = c, ch
+    link.type = ht.EDGE_LINK
+    attach_link(link)
+    tp = link.target_point
+    assert abs(abs(tp.x - 530) / 30 + abs(tp.y - 130) / 30 - 1.0) < 1e-9
+    assert abs(tp.x - (530 - 180 * 30 / 470)) < 1e-9
+    assert abs(tp.y - (130 + 290 * 30 / 470)) < 1e-9

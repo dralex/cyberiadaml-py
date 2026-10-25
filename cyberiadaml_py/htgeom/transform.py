@@ -31,7 +31,7 @@ from .types import (BAD_PARAMETER, COMMENT, COORD_ABSOLUTE, COORD_EPS,
                     COORD_LEFT_TOP, COORD_LOCAL_CENTER, COORD_NONE,
                     EDGE_BORDER, EDGE_CENTER, EDGE_CHUNK_LINK, INVALID,
                     LENGTH_EPS, PADDING,
-                    RECT_EPS, TREE, Document, Edge, GeometryError, Node,
+                    RECT_EPS, ROLE_CHOICE, TREE, Document, Edge, GeometryError, Node,
                     Point, Rect, Tree, f32, rect_center_point)
 
 Pts = List[Tuple[float, float]]
@@ -347,6 +347,17 @@ def _border_toward(n: Node, toward: Point) -> Point:
                           abs(toward.y - result.y) < COORD_EPS):
         return result
     r = n.rect
+    if n.role == ROLE_CHOICE:
+        # a choice is the rhombus inscribed in its rect: a link end lies
+        # anywhere on its border, not only on its vertices; a point inside
+        # keeps the centre
+        hw, hh = r.width / 2.0, r.height / 2.0
+        dx, dy = toward.x - result.x, toward.y - result.y
+        s = abs(dx) / hw + abs(dy) / hh if hw > 0.0 and hh > 0.0 else 0.0
+        if s > 1.0:
+            result.x += dx / s
+            result.y += dy / s
+        return result
     crossings = segment_rect_points((result.x, result.y),
                                     (toward.x, toward.y), r.x, r.y,
                                     r.width, r.height)
