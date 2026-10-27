@@ -30,6 +30,7 @@ CORE = 'CORE'
 EXT_COMPLETENESS = 'EXT-COMPLETENESS'
 EXT_DISPLAY = 'EXT-DISPLAY'
 EXT_PLATFORM = 'EXT-PLATFORM'
+EXT_FA = 'EXT-FA'
 
 # Scope classes: which part of the suite can check the requirement.
 # validator   - checkable on a document (the catalog's L1-L4 rows)
@@ -230,6 +231,28 @@ REQUIREMENTS = {
     'CGML-appendix-A-1': Req(MUST, 'RWX', CORE, VALIDATOR),
     # Appendix Standard key declarations
     'CGML-appendix-B-1': Req(MUST, 'RWX', CORE, VALIDATOR),
+    # EXT-FA: the finite automaton extension (testing spec 2.9), the
+    # clause numbers are those of docs/FA-extension.md
+    'CGML-FA-5-1': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-5-2': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-5-3': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3-1': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.1-1': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.1.1-1': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.1.1-2': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.1.1-3': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.2-1': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.2-2': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.3-1': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.3-2': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.4-1': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.4-2': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-3.4-3': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-4-1': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-4-2': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-4-3': Req(MUST, 'RWX', EXT_FA, VALIDATOR),
+    'CGML-FA-4-4': Req(MAY, 'RW', EXT_FA, INTEGRATION),
+    'CGML-FA-2.4-1': Req(MAY, 'X', EXT_FA, INTEGRATION),
 }
 
 

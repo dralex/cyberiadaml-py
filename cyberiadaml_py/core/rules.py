@@ -107,8 +107,8 @@ class Context:
 
 def load_checks():
     """Import the check modules so that their rules register."""
-    from . import (checks_l3, checks_l4, dialect,  # noqa: F401
-                   tagtree, xmlload)
+    from . import (checks_fa, checks_l3, checks_l4,  # noqa: F401
+                   dialect, tagtree, xmlload)
 
 
 def run_layer(ctx, layer):

@@ -32,7 +32,8 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EXAMPLES = ROOT / 'tests' / 'examples'
-STANDARD_DIRS = ('core', 'ext', 'field', 'geometry', 'negative', 'standard')
+STANDARD_DIRS = ('core', 'ext', 'fa', 'field', 'geometry', 'negative',
+                 'standard')
 
 
 def _revision(repo: pathlib.Path) -> str:

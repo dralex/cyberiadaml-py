@@ -3,6 +3,12 @@
 ## Version 1.8.0 (unreleased)
 
 Added:
+- the EXT-FA rules of `cyberiadaml_py.core` (compat-tests testing spec 1.11, 2.9): a
+  document with `type/ fa` in its metadata is a deterministic finite automaton diagram and
+  `core.read(strict=True)`, `core.write` and the strict `cml` reader refuse it when it
+  breaks the `CGML-FA-*` requirements; `core.alphabet` reads the `FA_INPUT`/`FA_OUTPUT`
+  alphabet comments and their restricted regular expressions; the standard examples
+  re-synced at compat-tests 374e6d0 (the `fa/` examples and the `X-FA-*` negatives).
 - the geometry of `cyberiadaml_py.cml`: the Qt, Cyberiada and yEd coordinate formats on reading,
   `convert_geometry` and writing; the bounding rects, `check_geometry`, the sizes of the loose
   rects of `geometry/ short`; `reconstruct_geometry` and `update_geometry`, the layered layout -

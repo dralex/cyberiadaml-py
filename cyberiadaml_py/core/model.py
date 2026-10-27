@@ -27,6 +27,7 @@ from . import actions, meta
 
 META_NAME = 'CGML_META'
 COMPONENT_NAME = 'CGML_COMPONENT'
+FA_TYPE = 'fa'                       # the type parameter of an FA document
 
 GEOMETRY_MODES = ('none', 'short', 'full')
 
@@ -217,6 +218,7 @@ class Document:
     meta_params: list = field(default_factory=list)
     meta_errors: list = field(default_factory=list)
     geometry_mode: str = 'none'
+    is_fa: bool = False              # the metadata parameter type is fa
     # the reader's additions: the format label, the findings and the
     # top-level graphs the dialect pass took out (D-9)
     label: str = 'Cyberiada-GraphML-1.0'
@@ -466,4 +468,5 @@ def build(parsed):
     _find_meta(document)
     mode = document.param('geometry')
     document.geometry_mode = mode if mode in GEOMETRY_MODES else 'none'
+    document.is_fa = (document.param('type') or '').strip() == FA_TYPE
     return document
