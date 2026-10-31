@@ -168,7 +168,8 @@ outside the standard, are written after the state machines. Errors of both reach
 `cml` is a second facade over the same core, with the names and the behaviour of the
 libcyberiadamlpp-py binding — the element tree, the action texts, the dump, the geometry; see
 `CML.md`. `htgeom` is a port of libhtreegeom: the coordinate formats and the layered layout of
-the hierarchical trees, the same arithmetic in the same order.
+the hierarchical trees (the full layout, the update and the arrange), the same arithmetic in the
+same order; the comment layout of libhtreegeom 1.3 is not ported yet.
 
 ## Code layout
 

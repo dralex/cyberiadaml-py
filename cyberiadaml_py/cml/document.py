@@ -259,12 +259,17 @@ class Document(ElementCollection):
 
     def reconstruct_geometry(self, reconstruct_sm: bool = False) -> None:
         from . import drawing
-        drawing.layout(self, bool(reconstruct_sm), False)
+        drawing.layout(self, bool(reconstruct_sm), drawing.FULL)
 
     def update_geometry(self,  # type: ignore[override]
                         reconstruct_sm: bool = False) -> None:
         from . import drawing
-        drawing.layout(self, bool(reconstruct_sm), True)
+        drawing.layout(self, bool(reconstruct_sm), drawing.UPDATE)
+
+    def arrange_geometry(self,  # type: ignore[override]
+                         reconstruct_sm: bool = False) -> None:
+        from . import drawing
+        drawing.layout(self, bool(reconstruct_sm), drawing.ARRANGE)
 
     def get_bound_rect(self, *args) -> Rect:  # type: ignore[override]
         d = args[0] if args else self

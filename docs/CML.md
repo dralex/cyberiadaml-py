@@ -22,7 +22,7 @@ program that reads, builds, converts or lays out Cyberiada documents runs on eit
         v                                                      |
  core/  read(strict)  - XML, Lapki dialect, checks     write()  - standard document, strict re-read
 
- cml/drawing.py  convert_geometry, reconstruct_geometry, update_geometry, the import, the export
+ cml/drawing.py  convert_geometry, reconstruct_geometry, update_geometry, arrange_geometry, the import, the export
         |  cml/bridge.py: the element tree as htgeom trees, the geometry written back
         v
  htgeom/  the coordinate formats, the bounding rects, the layered layout (libhtreegeom port)
@@ -34,7 +34,7 @@ program that reads, builds, converts or lays out Cyberiada documents runs on eit
 |---|---|---|---|
 | R | 1.7 | reading: `open`, `decode`, the element tree, every getter and query, meta, enums, constants, exceptions, the dump | the readers above |
 | W | 1.7 | building: the `new_*` factories, `Action`, edits, copies, comment subjects, meta setters, `encode`, `save`, `save_as` | hsm-console-viewer examples, builders without layout |
-| G | 1.8 | geometry: the Qt, Cyberiada and yEd coordinates, `convert_geometry`, the bounding rects, `check_geometry`, the sizes of the loose rects (`geometry/ short`), the layout (`reconstruct_geometry`, `update_geometry`), the dump's `bounding rect` | cybersphere-hsm-maker, the editor closeness tool |
+| G | 1.8 | geometry: the Qt, Cyberiada and yEd coordinates, `convert_geometry`, the bounding rects, `check_geometry`, the sizes of the loose rects (`geometry/ short`), the layout (`reconstruct_geometry`, `update_geometry`, `arrange_geometry`), the dump's `bounding rect` | cybersphere-hsm-maker, the editor closeness tool |
 | — | — | the yEd files, the fill-in of `decode(reconstruct=…)`, the Arena geometry, isomorphism of different machines, the Lapki writer | raise `NotImplementedException`; ad-statistics keeps the binding |
 
 ## Decisions
@@ -163,6 +163,7 @@ machine and then the comment subjects (a subject on a transition ends at its tar
 | `convert_geometry` | the formats Qt, Cyberiada10 and yEd; to `geometryFormatNone` a `ParametersException`, as the C library converts no geometry to no coordinates |
 | `reconstruct_geometry(sm)` | the geometry cleaned, the layered layout with the text-size estimates (10 px a character, 20 a line, 8 the margin; a machine has none, as in the C library) |
 | `update_geometry(sm)` | the layout seeded by the drawing: the drawn elements stay, the others are laid in |
+| `arrange_geometry(sm)` | the layout anew, seeded by the drawing: its bands, the order in a layer, the flow directions and the minimum sizes kept, the transitions and the comment links routed anew (libcyberiadamlpp 1.1); the comment layout of libhtreegeom 1.3 is not ported, so a document with comments may differ from the binding |
 | `get_bound_rect`, `check_geometry` | the C++ algorithms, the centre point included |
 
 After a geometry operation the transitions are local (`type: loc`), as the binding rebuilds its
@@ -191,7 +192,7 @@ The names, the signatures and the overloads of the binding. Tier W unless marked
 | `State`, `SubmachineState` | R: actions, kind, `get_substates`, collapsed, region rect, reference; W: action edits, `set_collapsed`, `set_submachine_reference` |
 | `StateMachine` | R: `get_comments`, `get_transitions`; W: the copy constructor, `check_isomorphism` of equal machines |
 | vertices, `Choice`, `Comment`, `Transition` | R: the getters of the binding; W: constructors and updates, `add_subject`, `remove_subject`, `update_subject`, `update_subject_geometry`, `update_label` |
-| `Document`, `LocalDocument` | R: `decode`, `open`, `get_meta`, `meta`, `get_meta_element`, `get_state_machines`, `get_parent_sm`, `get_geometry_format`, the file identity; W: the factories, `update_comment_subject`, `encode`, `save`, `save_as`, `reset`, `set_name`, `set_file`, `update_metainfo_from_comment`, the copy constructors; G: `convert_geometry`, `set_geometry`, `clean_geometry`, `get_bound_rect`, `check_geometry`, `reconstruct_geometry`, `update_geometry` |
+| `Document`, `LocalDocument` | R: `decode`, `open`, `get_meta`, `meta`, `get_meta_element`, `get_state_machines`, `get_parent_sm`, `get_geometry_format`, the file identity; W: the factories, `update_comment_subject`, `encode`, `save`, `save_as`, `reset`, `set_name`, `set_file`, `update_metainfo_from_comment`, the copy constructors; G: `convert_geometry`, `set_geometry`, `clean_geometry`, `get_bound_rect`, `check_geometry`, `reconstruct_geometry`, `update_geometry`, `arrange_geometry` |
 | every element | G: `get_bound_rect`, `clean_geometry`, `round_geometry`, the geometry setters |
 
 The binding's lists are Python lists; the out-parameter forms of `check_isomorphism` are not

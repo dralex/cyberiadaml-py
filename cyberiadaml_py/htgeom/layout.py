@@ -74,6 +74,13 @@ def check_options(opts: LayoutOptions) -> LayoutOptions:
     return out
 
 
+# the layered layout anew, seeded and pinned by the existing geometry (the
+# update), or seeded by it (the arrange)
+REBUILD_FULL = 0
+REBUILD_UPDATE = 1
+REBUILD_ARRANGE = 2
+
+
 class Vertex:
     """A vertex of the layout graph of a container."""
 
@@ -90,12 +97,15 @@ class Vertex:
         self.after = 0.0
         self.flow = 0.0             # the anchor in the frame
         self.cross = 0.0
-        self.seed = False           # the update: the vertex had geometry
+        self.seed = False           # the seeded layout: it had geometry
         self.seed_x = 0.0           # its centre in the document
         self.seed_y = 0.0
         self.seed_flow = 0.0        # its centre in the frame
         self.seed_cross = 0.0
         self.seed_layer = 0         # its band among the seeded vertices, 1..
+        self.seed_w = 0.0           # its extent in the seed
+        self.seed_h = 0.0
+        self.seed_flow_size = 0.0   # its extent along the flow of the frame
 
 
 class LayoutEdge:
@@ -109,7 +119,8 @@ class LayoutEdge:
         self.has_label = False
         self.label_w = 0.0
         self.label_h = 0.0
-        self.drawn_ends = False     # the update: between two drawn vertices
+        self.seeded_ends = False    # both ends seeded (or outside)
+        self.drawn_ends = False     # the update: between two pinned vertices
         self.chain: List[int] = []  # source, dummies, target by layer
 
 
@@ -118,7 +129,8 @@ class Graph:
 
     def __init__(self) -> None:
         self.direction = FLOW_RIGHT
-        self.update = False
+        self.seeded = False                # the bands and the seed order
+        self.pinned = False                # the update: the seeded places kept
         self.vertices: List[Vertex] = []   # ENTRY, the children, EXIT, dummies
         self.edges: List[LayoutEdge] = []
         self.layers: List[List[int]] = []  # 0 = ENTRY .. last + 1 = EXIT
@@ -173,22 +185,34 @@ class Context:
     """One layout pass of a tree."""
 
     def __init__(self, tree: Tree, opts: LayoutOptions, start: int,
-                 reconstruct_sm: bool, update: bool) -> None:
+                 reconstruct_sm: bool, mode: int) -> None:
         self.tree = tree
         self.opts = opts
         self.start = start              # the root frame of this pass
         self.reconstruct_sm = reconstruct_sm
         self.sm_had_rect = False
-        self.update = update            # the existing geometry is the seed
+        self.seeded = mode != REBUILD_FULL   # the geometry is the seed
+        self.pinned = mode == REBUILD_UPDATE  # the update: the seed is kept
         self.containers: List[Container] = []   # pre-order, 0 = the root
         self.index: Dict[Node, int] = {}
         self.seeds: Dict[Node, Point] = {}      # the centres before
+        self.seed_sizes: Dict[Node, Rect] = {}  # the arrange: the minimums
         self.edge_seeds: Set[Edge] = set()      # the edges with geometry
         self.routed: Set[Edge] = set()          # routed in this pass
 
 
 def _seeded(ctx: Context, node: Node) -> Optional[Point]:
     return ctx.seeds.get(node)
+
+
+def _at_least_seed(ctx: Context, n: Optional[Node], w: float,
+                   h: float) -> Tuple[float, float]:
+    # The arrange: a seeded node is at least its seed rect.
+    seed = ctx.seed_sizes.get(n) if n is not None else None
+    if seed is None:
+        return w, h
+    return (seed.width if seed.width > w else w,
+            seed.height if seed.height > h else h)
 
 
 def _source_role(r: int) -> bool:
@@ -402,6 +426,28 @@ def _regions(ctx: Context, c: Container) -> List[int]:
             if r.type == REGION and r in ctx.index]
 
 
+def _count_spread(ctx: Context, ci: int) -> Tuple[int, int]:
+    # The arrange: a container without seeded transitions runs along the
+    # axis its seeded children spread along.
+    c = ctx.containers[ci]
+    if c.kind != CONTAINER_GRAPH:
+        return 0, 0
+    xs, ys = [], []
+    for child in c.children:
+        p = _seeded(ctx, child)
+        if p is not None:
+            xs.append(p.x)
+            ys.append(p.y)
+    if not xs:
+        return 0, 0
+    wide, tall = max(xs) - min(xs), max(ys) - min(ys)
+    if wide > tall + COORD_EPS:
+        return 1, 0
+    if tall > wide + COORD_EPS:
+        return 0, 1
+    return 0, 0
+
+
 def _infer_directions(ctx: Context) -> None:
     # The update: the flow of a drawn container from its transitions.
     for ci, c in enumerate(ctx.containers):
@@ -415,6 +461,10 @@ def _infer_directions(ctx: Context) -> None:
                 down += d
         else:
             right, down = _count_runs(ctx, ci)
+        if right == down and not ctx.pinned:
+            r, d = _count_spread(ctx, ci)
+            right += r
+            down += d
         if right > down:
             c.direction = FLOW_RIGHT
         elif down > right:
@@ -437,7 +487,8 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
     n = len(c.children)
     g = Graph()
     g.direction = c.direction
-    g.update = ctx.update
+    g.seeded = ctx.seeded
+    g.pinned = ctx.pinned
     g.vertices = [Vertex() for _ in range(n + 2)]
     g.entry = 0
     g.exit = n + 1
@@ -448,12 +499,21 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
         v.node = node
         v.role = node.role
         v.kind = VERTEX_REAL
-        if ctx.update:
+        if ctx.seeded:
             centre = _seeded(ctx, node)
             if centre is not None:
+                # the bands are read in the seed's own extents: the arrange
+                # seed has its own scale, the update seed is the drawing
+                size = ctx.seed_sizes.get(node)
                 v.seed = True
                 v.seed_x = centre.x
                 v.seed_y = centre.y
+                if size is not None:
+                    v.seed_w, v.seed_h = size.width, size.height
+                elif node.rect is not None:
+                    v.seed_w, v.seed_h = node.rect.width, node.rect.height
+                else:
+                    v.seed_w = v.seed_h = o.point_size
         if node.rect is not None:
             v.flow_size, v.cross_size = _size_to_frame(
                 c.direction, node.rect.width, node.rect.height)
@@ -463,9 +523,10 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
     for s in c.seeds:
         if s.self_loop:
             continue
-        drawn_ends = ctx.update and \
+        seeded_ends = ctx.seeded and \
             (s.source_child < 0 or g.vertices[s.source_child + 1].seed) and \
             (s.target_child < 0 or g.vertices[s.target_child + 1].seed)
+        drawn_ends = seeded_ends and ctx.pinned
         if drawn_ends and (s.source_child < 0 or s.target_child < 0 or
                            s.edge in ctx.edge_seeds):
             # a drawn transition between drawn elements keeps its geometry
@@ -473,6 +534,7 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
         e = LayoutEdge(g.entry if s.source_child < 0 else s.source_child + 1,
                        g.exit if s.target_child < 0 else s.target_child + 1,
                        s.edge)
+        e.seeded_ends = seeded_ends
         e.drawn_ends = drawn_ends
         # a new edge between drawn vertices takes no label layer
         e.has_label = s.has_label and not drawn_ends
@@ -496,12 +558,12 @@ def _break_cycles(g: Graph) -> List[int]:
     for e in g.edges:
         sv = g.vertices[e.source]
         tv = g.vertices[e.target]
-        if g.update and sv.seed and tv.seed:
+        if g.seeded and sv.seed and tv.seed:
             # the drawing decides: a transition running backward
             if tv.seed_flow < sv.seed_flow - COORD_EPS:
                 _reverse_edge(e)
             continue
-        if g.update and (sv.seed or tv.seed):
+        if g.seeded and (sv.seed or tv.seed):
             continue    # the roles of the drawn vertices stay drawn
         if (_source_role(tv.role) and e.source != g.entry) or \
                 (_sink_role(sv.role) and e.target != g.exit):
@@ -510,7 +572,7 @@ def _break_cycles(g: Graph) -> List[int]:
     node_of = list(range(n))
     for v in range(n):
         vx = g.vertices[v]
-        if g.update and vx.seed and vx.seed_layer > 0:
+        if g.seeded and vx.seed and vx.seed_layer > 0:
             node_of[v] = n + vx.seed_layer - 1
             if vx.seed_layer > bands:
                 bands = vx.seed_layer
@@ -576,13 +638,13 @@ def _seed_bands(g: Graph) -> None:
     for v in range(1, len(g.vertices) - 1):
         vx = g.vertices[v]
         if vx.kind == VERTEX_REAL and vx.seed:
-            order.append((vx.seed_flow - vx.flow_size / 2.0, v))
+            order.append((vx.seed_flow - vx.seed_flow_size / 2.0, v))
     order.sort()
     band_end = 0.0
     band = 0
     for start, v in order:
         vx = g.vertices[v]
-        end = vx.seed_flow + vx.flow_size / 2.0
+        end = vx.seed_flow + vx.seed_flow_size / 2.0
         if band == 0 or start > band_end - COORD_EPS:
             band += 1
             band_end = end
@@ -599,10 +661,10 @@ def _assign_layers(g: Graph, topo: List[int]) -> None:
         incoming[e.target].append(k)
     has_source = any(g.vertices[v].kind == VERTEX_REAL and
                      _source_role(g.vertices[v].role) and
-                     not (g.update and g.vertices[v].seed)
+                     not (g.seeded and g.vertices[v].seed)
                      for v in range(1, n))
     bands = 0
-    if g.update:
+    if g.seeded:
         for v in range(1, n - 1):
             if g.vertices[v].seed_layer > bands:
                 bands = g.vertices[v].seed_layer
@@ -625,7 +687,7 @@ def _assign_layers(g: Graph, topo: List[int]) -> None:
                 if need > layer:
                     layer = need
             vx.layer = layer
-        if not g.update:
+        if not g.seeded:
             break
         # a pushed band drags the later bands along, as whole bands
         floor = 0
@@ -652,7 +714,7 @@ def _assign_layers(g: Graph, topo: List[int]) -> None:
     max_layer = 0
     for v in range(1, n - 1):
         vx = g.vertices[v]
-        if _sink_role(vx.role) and not (g.update and vx.seed):
+        if _sink_role(vx.role) and not (g.seeded and vx.seed):
             if vx.layer > sink_layer:
                 sink_layer = vx.layer
         elif vx.layer > max_layer:
@@ -661,7 +723,7 @@ def _assign_layers(g: Graph, topo: List[int]) -> None:
         sink_layer = max_layer + 1
     for v in range(1, n - 1):
         vx = g.vertices[v]
-        if _sink_role(vx.role) and not (g.update and vx.seed):
+        if _sink_role(vx.role) and not (g.seeded and vx.seed):
             vx.layer = sink_layer
     g.last = sink_layer if sink_layer > max_layer else max_layer
     exit_layer = g.last + 1
@@ -715,7 +777,7 @@ def _insert_dummies(g: Graph, o: LayoutOptions) -> None:
         layer_list = g.layers[vx.layer]
         vx.order = len(layer_list)
         layer_list.append(v)
-    if g.update:
+    if g.seeded:
         # the drawn vertices by their drawn cross position, the others after
         for layer in range(g.last + 2):
             keyed = sorted((g.vertices[v].seed_cross if g.vertices[v].seed
@@ -751,7 +813,7 @@ def _barycentres(g: Graph, layer: int, fixed_up: bool) -> List[float]:
     nodes = g.layers[layer]
     for v in nodes:
         nb = g.up[v] if fixed_up else g.down[v]
-        if not nb or (g.update and g.vertices[v].seed):
+        if not nb or (g.seeded and g.vertices[v].seed):
             result.append(float(g.vertices[v].order))
         else:
             total = 0.0
@@ -776,7 +838,8 @@ def _sort_layer(g: Graph, layer: int, fixed_up: bool) -> bool:
 def _graph_copy(g: Graph) -> Graph:
     result = Graph()
     result.direction = g.direction
-    result.update = g.update
+    result.seeded = g.seeded
+    result.pinned = g.pinned
     result.vertices = []
     for vx in g.vertices:
         copy = Vertex(vx.kind)
@@ -851,9 +914,9 @@ def _order_phase2(g: Graph) -> bool:
         i = 0
         while i < len(nodes):
             j = i + 1
-            drawn = g.update and g.vertices[nodes[i]].seed
+            drawn = g.seeded and g.vertices[nodes[i]].seed
             while j < len(nodes) and abs(b[j] - b[i]) < COORD_EPS:
-                if g.update and g.vertices[nodes[j]].seed:
+                if g.seeded and g.vertices[nodes[j]].seed:
                     drawn = True
                 j += 1
             if j - i > 1 and not drawn:
@@ -886,7 +949,7 @@ def _gap(g: Graph, o: LayoutOptions, u: int, v: int) -> float:
     if g.vertices[u].kind == VERTEX_EDGE_DUMMY and \
             g.vertices[v].kind == VERTEX_EDGE_DUMMY:
         return o.padding
-    if g.update and g.vertices[u].seed and g.vertices[v].seed:
+    if g.pinned and g.vertices[u].seed and g.vertices[v].seed:
         return 0.0      # the drawn neighbours keep their drawn gap
     return o.node_gap
 
@@ -900,7 +963,7 @@ def _pack_layer(g: Graph, o: LayoutOptions, layer: int) -> None:
             pos += _gap(g, o, nodes[i - 1], w) + v.before
         else:
             pos = v.before
-        if g.update and v.seed and v.seed_cross > pos:
+        if g.pinned and v.seed and v.seed_cross > pos:
             pos = v.seed_cross
         v.cross = pos
         pos += v.after
@@ -947,7 +1010,7 @@ def _priority_pass(g: Graph, o: LayoutOptions, layer: int,
         if i > 0:
             off[i] = off[i - 1] + g.vertices[nodes[i - 1]].after + \
                 _gap(g, o, nodes[i - 1], nodes[i]) + v.before
-        if g.update and v.seed:
+        if g.pinned and v.seed:
             # a drawn vertex aims at its drawn place above every pull
             d[i] = v.seed_cross
             w[i] = top * top
@@ -967,7 +1030,7 @@ def _priority_pass(g: Graph, o: LayoutOptions, layer: int,
     bdn: List[int] = []
     bstart: List[int] = []
     for i in range(n):
-        drawn = g.update and g.vertices[nodes[i]].seed
+        drawn = g.pinned and g.vertices[nodes[i]].seed
         bsum.append(w[i] * d[i])
         bw.append(w[i])
         bdsum.append(d[i] if drawn else 0.0)
@@ -1003,7 +1066,7 @@ def _assign_coordinates(g: Graph, o: LayoutOptions) -> None:
         _priority_pass(g, o, layer, False)
     for layer in range(1 if t < 1 else t, g.last + 1):
         _priority_pass(g, o, layer, True)
-    if g.update:
+    if g.pinned:
         # the drawn bands keep their drawn flow positions
         cursor = shift = 0.0
         any_ = after_new = False
@@ -1299,13 +1362,15 @@ def _graph_prepare(ctx: Context, ci: int) -> Graph:
             continue
         if g.direction == FLOW_DOWN:
             vx.seed_flow, vx.seed_cross = vx.seed_y, vx.seed_x
+            vx.seed_flow_size = vx.seed_h
         else:
             vx.seed_flow, vx.seed_cross = vx.seed_x, vx.seed_y
-    if g.update:
+            vx.seed_flow_size = vx.seed_w
+    if g.seeded:
         # a new edge inside one band keeps a straight line
         _seed_bands(g)
         g.edges = [e for e in g.edges
-                   if not (e.drawn_ends and
+                   if not (e.seeded_ends and
                            g.vertices[e.source].seed_layer ==
                            g.vertices[e.target].seed_layer)]
     topo = _break_cycles(g)
@@ -1325,8 +1390,10 @@ def _graph_frame(ctx: Context, ci: int, base: Graph,
         if vx.seed:
             if direction == FLOW_DOWN:
                 vx.seed_flow, vx.seed_cross = vx.seed_y, vx.seed_x
+                vx.seed_flow_size = vx.seed_h
             else:
                 vx.seed_flow, vx.seed_cross = vx.seed_x, vx.seed_y
+                vx.seed_flow_size = vx.seed_w
         if vx.kind == VERTEX_REAL and vx.node is not None and \
                 vx.node.rect is not None:
             vx.flow_size, vx.cross_size = _size_to_frame(
@@ -1342,7 +1409,7 @@ def _graph_frame(ctx: Context, ci: int, base: Graph,
             vx.after = cs + o.padding / 2.0
             vx.cross_size = vx.before + vx.after
     _assign_coordinates(g, o)
-    if g.update:
+    if g.pinned:
         _clear_routes(ctx, ci, g)
     flow_extent, cross_extent = _normalise(g)
     if direction == FLOW_DOWN:
@@ -1355,7 +1422,7 @@ def _graph(ctx: Context, ci: int, direction: int) -> Tuple[float, float]:
     base = _graph_prepare(ctx, ci)
     if direction >= 0:
         chosen = direction
-    elif ctx.opts.mode == LAYOUT_ADAPTIVE and not ctx.update:
+    elif ctx.opts.mode == LAYOUT_ADAPTIVE and not ctx.seeded:
         preferred = ctx.containers[ci].direction
         _, wd, hd = _graph_frame(ctx, ci, base, FLOW_DOWN)
         _, wr, hr = _graph_frame(ctx, ci, base, FLOW_RIGHT)
@@ -1382,11 +1449,13 @@ def _graph_extents(ctx: Context, ci: int,
 def _size_leaf(ctx: Context, node: Node) -> None:
     if node.type == POINT or node.rect is not None:
         return
-    node.rect = Rect(0.0, 0.0,
-                     node.min_rect.width if node.min_rect is not None
-                     else ctx.opts.node_width,
-                     node.min_rect.height if node.min_rect is not None
-                     else ctx.opts.node_height)
+    w, h = _at_least_seed(
+        ctx, node,
+        node.min_rect.width if node.min_rect is not None
+        else ctx.opts.node_width,
+        node.min_rect.height if node.min_rect is not None
+        else ctx.opts.node_height)
+    node.rect = Rect(0.0, 0.0, w, h)
 
 
 def _fit(ctx: Context, node: Optional[Node], cw: float,
@@ -1398,13 +1467,15 @@ def _fit(ctx: Context, node: Optional[Node], cw: float,
     min_h = node.min_rect.height if has_min else 0.0   # type: ignore
     title = node.min_rect.height if has_min else o.padding  # type: ignore
     if cw <= 0.0 and ch <= 0.0:
-        return (min_w if min_w > o.node_width else o.node_width,
-                min_h if min_h > o.node_height else o.node_height,
-                o.padding, title)
+        width, height = _at_least_seed(
+            ctx, node, min_w if min_w > o.node_width else o.node_width,
+            min_h if min_h > o.node_height else o.node_height)
+        return width, height, o.padding, title
     width = cw + 2 * o.padding
     if min_w > width:
         width = min_w
     height = title + o.padding + ch + o.padding
+    width, height = _at_least_seed(ctx, node, width, height)
     return (width, height, o.padding + (width - 2 * o.padding - cw) / 2.0,
             title + o.padding)
 
@@ -1452,7 +1523,7 @@ def _region_drawn(ctx: Context, r: Node) -> bool:
 
 def _regions_drawn(ctx: Context, ci: int) -> bool:
     c = ctx.containers[ci]
-    if not ctx.update or c.kind != CONTAINER_REGIONS:
+    if not ctx.pinned or c.kind != CONTAINER_REGIONS:
         return False
     assert c.node is not None
     return any(r.type == REGION and _region_drawn(ctx, r)
@@ -1481,7 +1552,7 @@ def _regions_layout(ctx: Context, ci: int) -> Tuple[float, float]:
     assert c.node is not None
     direction = c.direction
     max_flow = cursor = w = h = 0.0
-    if ctx.opts.mode == LAYOUT_ADAPTIVE and not ctx.update:
+    if ctx.opts.mode == LAYOUT_ADAPTIVE and not ctx.seeded:
         wd, hd = _stack_extents(ctx, ci, FLOW_DOWN)
         wr, hr = _stack_extents(ctx, ci, FLOW_RIGHT)
         direction = _choose(wd, hd, wr, hr, _target(ctx.opts, c.direction),
@@ -1555,7 +1626,7 @@ def _place_border_points(ctx: Context, parent: int, node: Node) -> None:
     for p in node.children:
         if not _is_border_point(p):
             continue
-        if ctx.update and p.point is not None:
+        if ctx.pinned and p.point is not None:
             continue
         if p.point is None:
             p.point = Point()
@@ -1615,7 +1686,7 @@ def _finish(ctx: Context, ci: int, direction: int) -> None:
         ctx.containers[ci].direction = direction
     node = ctx.containers[ci].node
     width, height, ix, iy = _fit(ctx, node, cw, ch)
-    if ctx.update:
+    if ctx.pinned:
         _finish_update(ctx, ci, node, is_root, width, height, ix, iy)
         return
     for child in _first_children(ctx, ci):
@@ -1928,11 +1999,11 @@ def _spread_pairs(ctx: Context) -> None:
     for e in ctx.tree.edges:
         if not _straight(e):
             continue
-        if ctx.update and e not in ctx.routed:
+        if ctx.pinned and e not in ctx.routed:
             continue
         group = [f for f in ctx.tree.edges
                  if _straight(f) and _same_pair(e, f) and
-                 (not ctx.update or f in ctx.routed)]
+                 (not ctx.pinned or f in ctx.routed)]
         if len(group) < 2 or group[0] is not e:
             continue
         ci = _container_of(ctx, e.source)
@@ -1946,7 +2017,7 @@ def _spread_pairs(ctx: Context) -> None:
 
 def _edge_kept(ctx: Context, e: Edge) -> bool:
     # The update: a drawn transition stays when its ends moved alike.
-    if not ctx.update or e not in ctx.edge_seeds:
+    if not ctx.pinned or e not in ctx.edge_seeds:
         return False
     assert e.source is not None and e.target is not None
     s0 = _seeded(ctx, e.source)
@@ -2042,7 +2113,7 @@ def _route_edges(ctx: Context) -> None:
         if (e.source.rect is None and e.source.point is None) or \
                 (e.target.rect is None and e.target.point is None):
             continue
-        if ctx.update:
+        if ctx.pinned:
             if _edge_kept(ctx, e) and _fit_route(e):
                 continue
             _drop_edge_geometry(e)
@@ -2108,11 +2179,13 @@ def _place_comment(ctx: Context, comment: Node) -> None:
     o = ctx.opts
     if comment.rect is not None:
         return
-    r = Rect(0.0, 0.0,
-             comment.min_rect.width if comment.min_rect is not None
-             else o.node_width,
-             comment.min_rect.height if comment.min_rect is not None
-             else o.node_height)
+    w, h = _at_least_seed(
+        ctx, comment,
+        comment.min_rect.width if comment.min_rect is not None
+        else o.node_width,
+        comment.min_rect.height if comment.min_rect is not None
+        else o.node_height)
+    r = Rect(0.0, 0.0, w, h)
     element = None
     for edge in ctx.tree.edges:
         if edge.source is comment and edge.target is not None and \
@@ -2180,7 +2253,7 @@ def _attach_links(ctx: Context) -> None:
         if e.source is None or e.target is None or \
                 not node_is_comment(e.source):
             continue
-        if ctx.update and not (_edge_kept(ctx, e) and
+        if ctx.pinned and not (_edge_kept(ctx, e) and
                                (e.target_edge is None or
                                 e.target_edge not in ctx.routed)):
             _drop_edge_geometry(e)
@@ -2207,27 +2280,40 @@ def _collect_seeds(ctx: Context, nodes: List[Node]) -> None:
             _collect_seeds(ctx, n.children)
 
 
+def _collect_sizes(ctx: Context, nodes: List[Node]) -> None:
+    # The arrange: the seed rects become the minimum sizes.
+    for n in nodes:
+        if n.rect is not None:
+            ctx.seed_sizes[n] = n.rect.copy()
+        if n.children:
+            _collect_sizes(ctx, n.children)
+
+
 def _tree_pass(tree: Tree, reconstruct_sm: bool, opts: LayoutOptions,
-               start: int, update: bool) -> Tuple[float, float]:
+               start: int, mode: int) -> Tuple[float, float]:
     from .transform import grow_sm_border
-    ctx = Context(tree, opts, start, reconstruct_sm, update)
+    ctx = Context(tree, opts, start, reconstruct_sm, mode)
     root = tree.nodes[0] if len(tree.nodes) == 1 and \
         tree.nodes[0].type == TREE else None
     ctx.sm_had_rect = root is not None and root.rect is not None
-    if update:
+    if ctx.seeded:
         _collect_seeds(ctx, tree.nodes)
+    if ctx.seeded and not ctx.pinned:
+        _collect_sizes(ctx, tree.nodes)
+    if ctx.pinned:
         for e in tree.edges:
             if e.source_point is not None or e.target_point is not None or \
                     e.polyline is not None or e.label_point is not None:
                 ctx.edge_seeds.add(e)
     else:
+        # the full layout and the arrange rebuild the geometry
         clean_tree_geometry(tree.nodes)
         for e in tree.edges:
             e.source_point = e.target_point = e.label_point = None
             e.polyline = None
     _collect(ctx, root, 0)
     _seed_edges(ctx)
-    if update:
+    if ctx.seeded:
         _infer_directions(ctx)
     _container(ctx, 0)
     _route_edges(ctx)
@@ -2238,16 +2324,16 @@ def _tree_pass(tree: Tree, reconstruct_sm: bool, opts: LayoutOptions,
 
 
 def layout_tree(tree: Tree, reconstruct_sm: bool, opts: LayoutOptions,
-                update: bool) -> None:
+                mode: int) -> None:
     """Lay a tree out; the adaptive mode keeps the better of two starts."""
-    if update or opts.mode != LAYOUT_ADAPTIVE:
-        _tree_pass(tree, reconstruct_sm, opts, opts.direction, update)
+    if mode != REBUILD_FULL or opts.mode != LAYOUT_ADAPTIVE:
+        _tree_pass(tree, reconstruct_sm, opts, opts.direction, mode)
         return
-    wr, hr = _tree_pass(tree, reconstruct_sm, opts, FLOW_RIGHT, False)
-    wd, hd = _tree_pass(tree, reconstruct_sm, opts, FLOW_DOWN, False)
+    wr, hr = _tree_pass(tree, reconstruct_sm, opts, FLOW_RIGHT, REBUILD_FULL)
+    wd, hd = _tree_pass(tree, reconstruct_sm, opts, FLOW_DOWN, REBUILD_FULL)
     better = _shape_better(wr, hr, wd, hd, opts.aspect)
     if better == 0 or (better < 0 and opts.direction == FLOW_RIGHT):
-        _tree_pass(tree, reconstruct_sm, opts, FLOW_RIGHT, False)
+        _tree_pass(tree, reconstruct_sm, opts, FLOW_RIGHT, REBUILD_FULL)
 
 
 def _shift_tree(tree: Tree, dx: float, dy: float) -> None:

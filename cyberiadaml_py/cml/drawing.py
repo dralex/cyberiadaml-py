@@ -203,20 +203,44 @@ def convert(doc, gf) -> None:
     update_center(doc, bridge)
 
 
-def layout(doc, reconstruct_sm: bool, update: bool) -> None:
-    """Lay the document out: anew, or the geometry-less elements only."""
+FULL = 'full'
+UPDATE = 'update'
+ARRANGE = 'arrange'
+
+
+def _clean_edges(doc) -> None:
+    """Clean the geometry of the transitions and the comment links."""
+    for sm in doc.get_state_machines():
+        for t in sm.get_transitions():
+            t.clean_geometry()
+        stack = list(sm.get_children())
+        while stack:
+            element = stack.pop()
+            for subject in getattr(element, '_subjects', []):
+                subject.clean_geometry()
+            stack.extend(getattr(element, '_children', []))
+
+
+def layout(doc, reconstruct_sm: bool, mode: str) -> None:
+    """Lay the document out: anew, around its drawing or as it arranges."""
     if doc._geometry_format == geometryFormatNone:
         doc._geometry_format = geometryFormatQt
     _machines(doc)
-    if not update:
+    if mode == FULL:
         # the layout rebuilds the geometry from the structure alone
         for sm in doc.get_state_machines():
             sm.clean_geometry()
+    elif mode == ARRANGE:
+        # every transition is routed anew: its label size estimated
+        _clean_edges(doc)
     bridge = Bridge(doc, estimate=True)
     try:
-        if update:
+        if mode == UPDATE:
             htgeom.update_document_geometry(bridge.document, reconstruct_sm,
                                             htgeom.LayoutOptions())
+        elif mode == ARRANGE:
+            htgeom.arrange_document_geometry(bridge.document, reconstruct_sm,
+                                             htgeom.LayoutOptions())
         else:
             htgeom.reconstruct_document_geometry(bridge.document,
                                                  reconstruct_sm,

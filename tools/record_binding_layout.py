@@ -28,16 +28,26 @@ writes tests/cml/binding-layout.json: per example (tests/examples) the
 results of the scenarios below - the dump of the document or the class of
 the exception. tests/cml/test_layout.py runs the same with cml. Every
 example runs in a process of its own: a crash of the binding loses one.
+
+    ... python3 tools/record_binding_layout.py --arrange
+
+writes tests/cml/binding-arrange.json with the scenarios `layout` and
+`arranged` alone, for tests/cml/test_arrange.py: the arrange needs a binding
+of libcyberiadamlpp 1.1, whose full layout is newer than the one recorded in
+binding-layout.json.
 """
 import json
 import pathlib
 import re
 import subprocess
 import sys
+from typing import Optional
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EXAMPLES = ROOT / 'tests' / 'examples'
 LAYOUT = ROOT / 'tests' / 'cml' / 'binding-layout.json'
+ARRANGE = ROOT / 'tests' / 'cml' / 'binding-arrange.json'
+ARRANGE_FLAG = '--arrange'
 FILE = re.compile(r", file: '[^']*'")
 
 
@@ -87,14 +97,22 @@ def _drawn(module, path: pathlib.Path) -> str:
     return _dump(document)
 
 
+def _arranged(module, path: pathlib.Path) -> str:
+    """Lay the document out anew as its drawing arranges it."""
+    document = _open(module, path)
+    document.arrange_geometry(True)
+    return _dump(document)
+
+
 SCENARIOS = {'qt': lambda m, p: _dump(_open(m, p)), 'saved': _saved,
              'layout': _layout, 'update': _update, 'drawn': _drawn}
+ARRANGE_SCENARIOS = {'layout': _layout, 'arranged': _arranged}
 
 
-def run(module, path: pathlib.Path) -> dict:
+def run(module, path: pathlib.Path, scenarios: Optional[dict] = None) -> dict:
     """Return the result of every scenario: the dump or the exception."""
     result = {}
-    for name, scenario in SCENARIOS.items():
+    for name, scenario in (scenarios or SCENARIOS).items():
         try:
             result[name] = scenario(module, path)
         except Exception as error:  # the binding registers them flat
@@ -110,15 +128,20 @@ def documents():
 
 def main() -> int:
     """Record the results of the importable CyberiadaML module."""
-    if len(sys.argv) == 2:
+    args = sys.argv[1:]
+    arrange = ARRANGE_FLAG in args
+    args = [a for a in args if a != ARRANGE_FLAG]
+    scenarios = ARRANGE_SCENARIOS if arrange else SCENARIOS
+    if len(args) == 1:
         import CyberiadaML  # type: ignore[import-not-found]
-        print(json.dumps(run(CyberiadaML, pathlib.Path(sys.argv[1]))))
+        print(json.dumps(run(CyberiadaML, pathlib.Path(args[0]), scenarios)))
         return 0
     import CyberiadaML  # type: ignore[import-not-found]  # noqa: F811
     results = {}
     for path in documents():
         name = str(path.relative_to(EXAMPLES))
-        child = subprocess.run([sys.executable, __file__, str(path)],
+        child = subprocess.run([sys.executable, __file__, str(path)] +
+                               ([ARRANGE_FLAG] if arrange else []),
                                capture_output=True, text=True)
         if child.returncode:
             results[name] = {'crash': child.stderr.strip().splitlines()[-1:]}
@@ -126,8 +149,9 @@ def main() -> int:
             results[name] = json.loads(child.stdout)
     record = {'binding': getattr(CyberiadaML, '__version__', '?'),
               'documents': results}
-    LAYOUT.write_text(json.dumps(record, indent=1, ensure_ascii=False) +
-                      '\n', encoding='utf-8')
+    (ARRANGE if arrange else LAYOUT).write_text(
+        json.dumps(record, indent=1, ensure_ascii=False) + '\n',
+        encoding='utf-8')
     print('%d documents recorded' % len(results))
     return 0
 

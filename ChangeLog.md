@@ -3,6 +3,10 @@
 ## Version 1.8.0 (unreleased)
 
 Added:
+- the arrange of libhtreegeom 1.3 in the htgeom port (`arrange_document_geometry`) and
+  `Document.arrange_geometry` of `cml` (libcyberiadamlpp 1.1): the layout anew, seeded by
+  the drawing - its bands, the order in a layer, the flow directions and the minimum sizes;
+  `tools/record_binding_layout.py --arrange` and `tests/cml/binding-arrange.json`;
 - the EXT-FA rules of `cyberiadaml_py.core` (compat-tests testing spec 1.11, 2.9): a
   document with `type/ fa` in its metadata is a deterministic finite automaton diagram and
   `core.read(strict=True)`, `core.write` and the strict `cml` reader refuse it when it

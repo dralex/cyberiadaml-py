@@ -22,12 +22,14 @@
 """The geometry of the hierarchical trees: a port of libhtreegeom.
 
 The coordinate conversions between the formats, the bounding rects and the
-layered layout (the full one and the update seeded by the drawing).
+layered layout (the full one, the update seeded and pinned by the drawing,
+the arrange seeded by it).
 """
 from typing import List, Optional
 
 from . import types
-from .layout import check_options, layout_tree, place_trees
+from .layout import (REBUILD_ARRANGE, REBUILD_FULL, REBUILD_UPDATE,
+                     check_options, layout_tree, place_trees)
 from .transform import (build_bounding_rect, convert_document_geometry,
                         convert_document_geometry_to_absolute,
                         convert_document_geometry_to_format)
@@ -37,6 +39,7 @@ from .types import (BAD_PARAMETER, COORD_ABSOLUTE, COORD_NONE, EDGE_BORDER,
 
 __all__ = ['types', 'convert_document_geometry', 'build_bounding_rect',
            'reconstruct_document_geometry', 'update_document_geometry',
+           'arrange_document_geometry',
            'GeometryError', 'LayoutOptions']
 
 
@@ -62,11 +65,11 @@ def _prepare_update(doc: Document) -> None:
 
 
 def _rebuild(doc: Document, reconstruct_sm: bool,
-             layout: Optional[LayoutOptions], update: bool) -> None:
+             layout: Optional[LayoutOptions], mode: int) -> None:
     if not doc.trees:
         raise GeometryError(BAD_PARAMETER, 'no trees')
     if layout is None:
-        if not update:
+        if mode == REBUILD_FULL:
             # the preserving fill-in of the decoding is not ported
             raise GeometryError(BAD_PARAMETER, 'no layout options')
         layout = LayoutOptions()
@@ -77,14 +80,16 @@ def _rebuild(doc: Document, reconstruct_sm: bool,
     edge_format = doc.edge_format
     many = len(doc.trees) > 1
     drawn: List[bool] = []
-    if update:
+    if mode != REBUILD_FULL:
         _prepare_update(doc)
         drawn = [tree_has_geometry(tree) for tree in doc.trees]
     for tree in doc.trees:
         # a document with several machines draws every border
-        layout_tree(tree, reconstruct_sm or many, opts, update)
+        layout_tree(tree, reconstruct_sm or many, opts, mode)
     if many:
-        place_trees(doc.trees, opts, drawn if update else None)
+        # the arrange places the machines anew, in a row
+        place_trees(doc.trees, opts,
+                    drawn if mode == REBUILD_UPDATE else None)
     doc.node_coord_format = COORD_ABSOLUTE
     doc.edge_coord_format = COORD_ABSOLUTE
     doc.edge_pl_coord_format = COORD_ABSOLUTE
@@ -100,10 +105,16 @@ def _rebuild(doc: Document, reconstruct_sm: bool,
 def reconstruct_document_geometry(doc: Document, reconstruct_sm: bool,
                                   layout: LayoutOptions) -> None:
     """Lay the document out from its structure alone."""
-    _rebuild(doc, reconstruct_sm, layout, False)
+    _rebuild(doc, reconstruct_sm, layout, REBUILD_FULL)
 
 
 def update_document_geometry(doc: Document, reconstruct_sm: bool,
                              layout: Optional[LayoutOptions] = None) -> None:
     """Lay the geometry-less elements out, the drawing kept."""
-    _rebuild(doc, reconstruct_sm, layout, True)
+    _rebuild(doc, reconstruct_sm, layout, REBUILD_UPDATE)
+
+
+def arrange_document_geometry(doc: Document, reconstruct_sm: bool,
+                              layout: Optional[LayoutOptions] = None) -> None:
+    """Lay the document out anew as its geometry arranges it."""
+    _rebuild(doc, reconstruct_sm, layout, REBUILD_ARRANGE)
