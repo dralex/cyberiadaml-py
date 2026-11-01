@@ -67,7 +67,8 @@ KNOWN = {
     'lapki/compiler-two-choices.graphml':
         (('layout', 'update'), 'the choice glyph of libhtreegeom 1.3'),
     'standard/core/F-ELSE.graphml':
-        (('layout', 'update', 'drawn'), 'the choice glyph of libhtreegeom 1.3'),
+        (('layout', 'update', 'drawn'),
+         'the choice glyph of libhtreegeom 1.3'),
 }
 
 
