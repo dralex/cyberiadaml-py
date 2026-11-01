@@ -5,6 +5,9 @@
 Added:
 - the choice glyph of libhtreegeom 1.3 in the htgeom port: a choice is a square of
   `LayoutOptions.choice_size` (40), its transitions end at the tips of its rhombus;
+- the pull of the arrange of libhtreegeom 1.3 in the htgeom port
+  (`LayoutOptions.seed_pull`): the seeded places scaled to the least distances,
+  the rows drawn askew in line;
 - the arrange of libhtreegeom 1.3 in the htgeom port (`arrange_document_geometry`) and
   `Document.arrange_geometry` of `cml` (libcyberiadamlpp 1.1): the layout anew, seeded by
   the drawing - its bands, the order in a layer, the flow directions and the minimum sizes;

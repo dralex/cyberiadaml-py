@@ -42,6 +42,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 RECORD = json.loads((ROOT / 'tests' / 'cml' / 'binding-arrange.json')
                     .read_text(encoding='utf-8'))
 EPS = 0.001
+# the distance between the drawn centres of the chain of the test 58
+DRAWN_STEP = 550.0
 LABEL = (80.0, 20.0)
 
 
@@ -242,7 +244,10 @@ def test_unseeded_vertex():
 
 
 def test_drawn_document():
-    """58: a drawn chain is laid out as the full layout of its order."""
+    """58: a drawn chain askew is a row at its drawn distances.
+
+    By the order alone, the full layout of its order.
+    """
     sm = _node(None, ht.TREE, 'sm')
     a = _node(sm, ht.SIMPLE, 'a', (50, 50, 300, 200))
     b = _node(sm, ht.SIMPLE, 'b', (600, 60, 300, 200))
@@ -254,10 +259,110 @@ def test_drawn_document():
     _edge(tree, 'e-b-c', b, c)
     full = copy.deepcopy(doc)
     htgeom.reconstruct_document_geometry(full, True, ht.LayoutOptions())
+    order = copy.deepcopy(doc)
+    opts = ht.LayoutOptions()
+    opts.seed_pull = 0.0
+    htgeom.arrange_document_geometry(order, True, opts)
+    assert _geometry(order.trees[0].nodes) == _geometry(full.trees[0].nodes)
     htgeom.arrange_document_geometry(doc, True, ht.LayoutOptions())
-    assert _cx(a) < _cx(b) < _cx(c) and abs(_cy(a) - _cy(c)) < EPS
+    assert _cx(a) < _cx(b) < _cx(c)
+    assert abs(_cy(a) - _cy(b)) < EPS and abs(_cy(b) - _cy(c)) < EPS
+    assert abs(_cx(b) - _cx(a) - DRAWN_STEP) < EPS
+    assert abs(_cx(c) - _cx(b) - DRAWN_STEP) < EPS
     assert not ab.polyline
-    assert _geometry(doc.trees[0].nodes) == _geometry(full.trees[0].nodes)
+
+
+# the test 61: the drawn boxes, their extents along the flow apart; the thin
+# outlier pair drawn almost on each other; the stretch it may cause at most
+BOX = 120.0
+THIN = 10.0
+OVERLAP = 30.0
+
+
+def _row(xs, width):
+    sm = _node(None, ht.TREE, 'sm')
+    v = [_node(sm, ht.SIMPLE, id_, (x - width / 2.0, 0.0, width, 80.0))
+         for id_, x in zip('abcd', xs)]
+    doc, tree = _document([sm])
+    for s, t in zip(v, v[1:]):
+        _edge(tree, 'e-%s-%s' % (s.id, t.id), s, t)
+    return doc, v
+
+
+def _pull_diamond():
+    sm = _node(None, ht.TREE, 'sm')
+    places = ((0, 1000), (600, 0), (600, 1300), (1200, 1000))
+    v = [_node(sm, ht.SIMPLE, id_, (x, y, BOX, 80.0))
+         for id_, (x, y) in zip('abcd', places)]
+    doc, tree = _document([sm])
+    for s, t in ((0, 1), (0, 2), (1, 3), (2, 3)):
+        _edge(tree, 'e-%s-%s' % (v[s].id, v[t].id), v[s], v[t])
+    return doc, v
+
+
+def _fixed_point(doc):
+    again = copy.deepcopy(doc)
+    htgeom.arrange_document_geometry(again, True, ht.LayoutOptions())
+    return _geometry(again.trees[0].nodes) == _geometry(doc.trees[0].nodes)
+
+
+def test_pull_uneven():
+    """61: the uneven gaps of a loose seed are kept as drawn."""
+    doc, v = _row((0.0, 1000.0, 3500.0, 4500.0), BOX)
+    htgeom.arrange_document_geometry(doc, True, ht.LayoutOptions())
+    assert [round(_cx(b) - _cx(a), 3) for a, b in zip(v, v[1:])] == \
+        [1000.0, 2500.0, 1000.0]
+    assert _fixed_point(doc)
+
+
+def test_pull_tight():
+    """61: a tight seed is stretched as a whole, the tightest gap the least."""
+    step = BOX + THIN
+    doc, v = _row((0.0, step, 3.0 * step, 6.0 * step), BOX)
+    opts = ht.LayoutOptions()
+    htgeom.arrange_document_geometry(doc, True, opts)
+    ab, bc, cd = (_cx(b) - _cx(a) for a, b in zip(v, v[1:]))
+    assert abs(bc - 2.0 * ab) < EPS and abs(cd - 3.0 * ab) < EPS
+    assert abs(v[1].rect.x - v[0].rect.x - v[0].rect.width -
+               opts.layer_gap) < EPS
+    assert _fixed_point(doc)
+
+
+def test_pull_diamond():
+    """61: the drawn offsets across the flow, a and d in one line."""
+    doc, v = _pull_diamond()
+    htgeom.arrange_document_geometry(doc, True, ht.LayoutOptions())
+    assert _cx(v[0]) < _cx(v[1]) < _cx(v[3])
+    assert abs(_cx(v[1]) - _cx(v[2])) < EPS
+    assert abs(_cy(v[0]) - _cy(v[3])) < EPS
+    assert abs(_cy(v[0]) - _cy(v[1]) - 1000.0) < EPS
+    assert abs(_cy(v[2]) - _cy(v[0]) - 300.0) < EPS
+    assert _fixed_point(doc)
+
+
+def test_pull_share():
+    """61: the share of the pull, between the order alone and the full."""
+    offsets = []
+    for share in (0.0, 0.5, 1.0):
+        doc, v = _pull_diamond()
+        opts = ht.LayoutOptions()
+        opts.seed_pull = share
+        htgeom.arrange_document_geometry(doc, True, opts)
+        offsets.append(_cy(v[0]) - _cy(v[1]))
+    assert offsets[0] < offsets[1] - EPS < offsets[2] - 2 * EPS
+    assert abs(offsets[1] - (offsets[0] + offsets[2]) / 2.0) < EPS
+
+
+def test_pull_overlap():
+    """61: a pair drawn on each other does not blow the seed up."""
+    xs = (0.0, 1000.0, 1000.0 + OVERLAP, 2000.0 + OVERLAP)
+    doc, v = _row(xs, THIN)
+    opts = ht.LayoutOptions()
+    htgeom.arrange_document_geometry(doc, True, opts)
+    assert _cx(v[0]) < _cx(v[1]) < _cx(v[2]) < _cx(v[3])
+    assert _cx(v[3]) - _cx(v[0]) < ht.SEED_PULL_STRETCH * xs[3]
+    assert v[2].rect.x - v[1].rect.x - v[1].rect.width > \
+        opts.layer_gap - EPS
 
 
 def _drawn_comments(path):

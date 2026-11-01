@@ -37,6 +37,7 @@ from .types import (BAD_PARAMETER, CHOICE_SIZE, COMMENT, COMPOSITE,
                     LAYOUT_ADAPTIVE, LAYOUT_ALTERNATE, LAYOUT_ASPECT,
                     LAYOUT_FIXED, LAYOUT_SWEEPS, NODE_GAP, NODE_HEIGHT,
                     NODE_WIDTH, PADDING, POINT, POINT_SIZE, REGION,
+                    SEED_ALIGN, SEED_PULL, SEED_PULL_STRETCH,
                     ROLE_CHOICE, ROLE_DEEP_HISTORY, ROLE_ENTRY_POINT,
                     ROLE_EXIT_POINT,
                     ROLE_FINAL, ROLE_INITIAL, ROLE_NONE, ROLE_SHALLOW_HISTORY,
@@ -74,6 +75,8 @@ def check_options(opts: LayoutOptions) -> LayoutOptions:
                           ('label_height', LABEL_HEIGHT)):
         if getattr(out, name) <= 0:
             setattr(out, name, default)
+    if out.seed_pull < 0.0:
+        out.seed_pull = SEED_PULL     # 0: the order alone
     return out
 
 
@@ -109,6 +112,8 @@ class Vertex:
         self.seed_w = 0.0           # its extent in the seed
         self.seed_h = 0.0
         self.seed_flow_size = 0.0   # its extent along the flow of the frame
+        self.pulled = False         # the arrange: it aims at its seed place
+        self.pull_target = 0.0      # that place across the flow, in the layout
 
 
 class LayoutEdge:
@@ -134,6 +139,7 @@ class Graph:
         self.direction = FLOW_RIGHT
         self.seeded = False                # the bands and the seed order
         self.pinned = False                # the update: the seeded places kept
+        self.pull = 0.0                    # the arrange: the seed_pull
         self.vertices: List[Vertex] = []   # ENTRY, the children, EXIT, dummies
         self.edges: List[LayoutEdge] = []
         self.layers: List[List[int]] = []  # 0 = ENTRY .. last + 1 = EXIT
@@ -492,6 +498,7 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
     g.direction = c.direction
     g.seeded = ctx.seeded
     g.pinned = ctx.pinned
+    g.pull = o.seed_pull if ctx.seeded and not ctx.pinned else 0.0
     g.vertices = [Vertex() for _ in range(n + 2)]
     g.entry = 0
     g.exit = n + 1
@@ -843,6 +850,7 @@ def _graph_copy(g: Graph) -> Graph:
     result.direction = g.direction
     result.seeded = g.seeded
     result.pinned = g.pinned
+    result.pull = g.pull
     result.vertices = []
     for vx in g.vertices:
         copy = Vertex(vx.kind)
@@ -957,6 +965,16 @@ def _gap(g: Graph, o: LayoutOptions, u: int, v: int) -> float:
     return o.node_gap
 
 
+def _aim(g: Graph, v: Vertex) -> Optional[float]:
+    # The place across the flow a vertex is held at: a drawn vertex of the
+    # update, a seeded vertex of the arrange with the pull.
+    if g.pinned and v.seed:
+        return v.seed_cross
+    if not g.pinned and v.pulled:
+        return v.pull_target
+    return None
+
+
 def _pack_layer(g: Graph, o: LayoutOptions, layer: int) -> None:
     nodes = g.layers[layer]
     pos = 0.0
@@ -966,8 +984,9 @@ def _pack_layer(g: Graph, o: LayoutOptions, layer: int) -> None:
             pos += _gap(g, o, nodes[i - 1], w) + v.before
         else:
             pos = v.before
-        if g.pinned and v.seed and v.seed_cross > pos:
-            pos = v.seed_cross
+        aim = _aim(g, v)
+        if aim is not None and aim > pos:
+            pos = aim
         v.cross = pos
         pos += v.after
 
@@ -1013,9 +1032,10 @@ def _priority_pass(g: Graph, o: LayoutOptions, layer: int,
         if i > 0:
             off[i] = off[i - 1] + g.vertices[nodes[i - 1]].after + \
                 _gap(g, o, nodes[i - 1], nodes[i]) + v.before
-        if g.pinned and v.seed:
-            # a drawn vertex aims at its drawn place above every pull
-            d[i] = v.seed_cross
+        aim = _aim(g, v)
+        if aim is not None:
+            # a drawn or pulled vertex aims at its place above every pull
+            d[i] = aim
             w[i] = top * top
         elif not nb:
             d[i] = v.cross
@@ -1033,7 +1053,7 @@ def _priority_pass(g: Graph, o: LayoutOptions, layer: int,
     bdn: List[int] = []
     bstart: List[int] = []
     for i in range(n):
-        drawn = g.pinned and g.vertices[nodes[i]].seed
+        drawn = _aim(g, g.vertices[nodes[i]]) is not None
         bsum.append(w[i] * d[i])
         bw.append(w[i])
         bdsum.append(d[i] if drawn else 0.0)
@@ -1058,17 +1078,144 @@ def _priority_pass(g: Graph, o: LayoutOptions, layer: int,
             g.vertices[nodes[i]].cross = m + off[i]
 
 
-def _assign_coordinates(g: Graph, o: LayoutOptions) -> None:
-    t = (g.last + 1) // 2
+def _band_centres(g: Graph, o: LayoutOptions) -> List[float]:
+    # The centres of the bands of the layers a layer gap apart.
     start = 0.0
+    centre = [0.0] * (g.last + 2)
     for layer in range(1, g.last + 1):
-        _pack_layer(g, o, layer)
+        band = 0.0
+        for w in g.layers[layer]:
+            if g.vertices[w].flow_size > band:
+                band = g.vertices[w].flow_size
+        centre[layer] = start + band / 2.0
+        start += band + o.layer_gap
+    return centre
+
+
+def _seed_flow(g: Graph, layer: int) -> Optional[float]:
+    # The mean seed place along the flow of the seeded vertices of a layer.
+    total = 0.0
+    n = 0
+    for w in g.layers[layer]:
+        v = g.vertices[w]
+        if v.kind == VERTEX_REAL and v.seed:
+            total += v.seed_flow
+            n += 1
+    return total / n if n else None
+
+
+def _seed_ratios(g: Graph, o: LayoutOptions,
+                 centre: List[float]) -> List[float]:
+    # The ratios of the least distances of the layout to the seed distances:
+    # the consecutive seeded vertices of a layer across the flow (with all
+    # the vertices between), the consecutive seeded bands along it.
+    ratios: List[float] = []
+    prev = -1
+    prev_flow = 0.0
+    for layer in range(1, g.last + 1):
+        nodes = g.layers[layer]
+        need = 0.0
+        last = -1
+        for i, w in enumerate(nodes):
+            v = g.vertices[w]
+            if i > 0:
+                need += g.vertices[nodes[i - 1]].after + \
+                    _gap(g, o, nodes[i - 1], w) + v.before
+            if v.kind != VERTEX_REAL or not v.seed:
+                continue
+            if last >= 0:
+                gap = v.seed_cross - g.vertices[nodes[last]].seed_cross
+                if gap > COORD_EPS:
+                    ratios.append(need / gap)
+            last = i
+            need = 0.0
+        flow = _seed_flow(g, layer)
+        if flow is None:
+            continue
+        if prev >= 1 and flow - prev_flow > COORD_EPS:
+            ratios.append((centre[layer] - centre[prev]) / (flow - prev_flow))
+        prev = layer
+        prev_flow = flow
+    return ratios
+
+
+def _pull_targets(g: Graph, o: LayoutOptions, centre: List[float]) -> float:
+    # The arrange: the seed scaled to the least distances of the layout -
+    # the largest ratio, at most SEED_PULL_STRETCH times the median (the
+    # rough boxes), the seed never pressed; the seeded vertices aim at their
+    # scaled places across the flow, centred on the layout without the pull,
+    # the share seed_pull of the way; the vertices drawn in line (SEED_ALIGN,
+    # one per layer) aim at the mean of their line. The scale, 0 when the
+    # seed gives none.
+    ratios = sorted(_seed_ratios(g, o, centre))
+    if not ratios:
+        return 0.0
+    share = g.pull if g.pull < 1.0 else 1.0
+    median = ratios[len(ratios) // 2]
+    scale = ratios[-1] if ratios[-1] < SEED_PULL_STRETCH * median \
+        else SEED_PULL_STRETCH * median
+    if scale < 1.0:
+        scale = 1.0
+    seeded = [k for k, v in enumerate(g.vertices)
+              if v.kind == VERTEX_REAL and v.seed and v.layer >= 1]
+    if not seeded:
+        return 0.0
+    sc = c = 0.0
+    for k in seeded:
+        sc += g.vertices[k].seed_cross
+        c += g.vertices[k].cross
+    sc /= len(seeded)
+    c /= len(seeded)
+    line = sorted((g.vertices[k].seed_cross, k) for k in seeded)
+    first = 0
+    for i in range(1, len(line) + 1):
+        if i < len(line):
+            p = g.vertices[line[i - 1][1]]
+            v = g.vertices[line[i][1]]
+            extent = p.cross_size if p.cross_size > v.cross_size \
+                else v.cross_size
+            join = scale * (v.seed_cross - p.seed_cross) < SEED_ALIGN * extent
+            if join and any(g.vertices[line[j][1]].layer == v.layer
+                            for j in range(first, i)):
+                join = False
+            if join:
+                continue
+        mean = 0.0
+        for j in range(first, i):
+            mean += line[j][0]
+        mean /= float(i - first)
+        for j in range(first, i):
+            v = g.vertices[line[j][1]]
+            v.pulled = True
+            v.pull_target = v.cross + \
+                share * (c + scale * (mean - sc) - v.cross)
+        first = i
+    return scale
+
+
+def _priority_passes(g: Graph, o: LayoutOptions) -> None:
+    t = (g.last + 1) // 2
     for layer in range(1, g.last + 1):
         _priority_pass(g, o, layer, True)
     for layer in range(g.last - 1, 0, -1):
         _priority_pass(g, o, layer, False)
     for layer in range(1 if t < 1 else t, g.last + 1):
         _priority_pass(g, o, layer, True)
+
+
+def _assign_coordinates(g: Graph, o: LayoutOptions) -> None:
+    start = scale = first_flow = first_centre = 0.0
+    first = -1
+    for layer in range(1, g.last + 1):
+        _pack_layer(g, o, layer)
+    _priority_passes(g, o)
+    if not g.pinned and g.pull > 0.0:
+        # the arrange: the passes again, the seeded vertices pulled
+        scale = _pull_targets(g, o, _band_centres(g, o))
+        if scale > 0.0:
+            for layer in range(1, g.last + 1):
+                _pack_layer(g, o, layer)
+            _priority_passes(g, o)
     if g.pinned:
         # the drawn bands keep their drawn flow positions
         cursor = shift = 0.0
@@ -1126,9 +1273,23 @@ def _assign_coordinates(g: Graph, o: LayoutOptions) -> None:
         for w in nodes:
             if g.vertices[w].flow_size > band:
                 band = g.vertices[w].flow_size
+        at = start + band / 2.0
+        flow = _seed_flow(g, layer) if scale > 0.0 else None
+        if flow is not None:
+            # the arrange: a seeded band at its seed place, never closer
+            # than the layer gap to the band before
+            if first < 0:
+                first = layer
+                first_flow = flow
+                first_centre = at
+            else:
+                target = first_centre + scale * (flow - first_flow)
+                pull = g.pull if g.pull < 1.0 else 1.0
+                if target > at:
+                    at += pull * (target - at)
         for w in nodes:
-            g.vertices[w].flow = start + band / 2.0
-        start += band + o.layer_gap
+            g.vertices[w].flow = at
+        start = at + band / 2.0 + o.layer_gap
     g.vertices[g.entry].flow = 0.0
     g.vertices[g.exit].flow = start - o.layer_gap \
         if start > o.layer_gap else 0.0

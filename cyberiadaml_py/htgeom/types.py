@@ -86,6 +86,12 @@ NODE_HEIGHT = 200.0
 SHELF_COLUMNS = 3
 POINT_SIZE = 20.0
 CHOICE_SIZE = 40.0          # the side of the square of a choice
+# the arrange: the pull toward the seed places; the largest stretch of the
+# seed over the median one; seeded vertices in line across the flow when
+# their scaled distance is under this share of the larger extent
+SEED_PULL = 1.0
+SEED_PULL_STRETCH = 3.0
+SEED_ALIGN = 0.25
 NODE_GAP = 40.0
 LAYER_GAP = 60.0
 LABEL_WIDTH = 80.0
@@ -251,6 +257,7 @@ class LayoutOptions:
         self.node_height = NODE_HEIGHT
         self.point_size = POINT_SIZE
         self.choice_size = CHOICE_SIZE
+        self.seed_pull = SEED_PULL      # the arrange: 0 the order alone
         self.label_width = LABEL_WIDTH
         self.label_height = LABEL_HEIGHT
 
