@@ -163,6 +163,7 @@ machine and then the comment subjects (a subject on a transition ends at its tar
 | `convert_geometry` | the formats Qt, Cyberiada10 and yEd; to `geometryFormatNone` a `ParametersException`, as the C library converts no geometry to no coordinates |
 | `reconstruct_geometry(sm)` | the geometry cleaned, the layered layout with the text-size estimates (10 px a character, 20 a line, 8 the margin; a machine has none, as in the C library) |
 | `update_geometry(sm)` | the layout seeded by the drawing: the drawn elements stay, the others are laid in |
+| a choice | a square of 40 (the editor's default), the larger side of a preset or seed; its transitions end at the tips of its rhombus facing the other end (libhtreegeom 1.3); a format conversion keeps the plain border projection |
 | `arrange_geometry(sm)` | the layout anew, seeded by the drawing: its bands, the order in a layer, the flow directions and the minimum sizes kept, the transitions and the comment links routed anew (libcyberiadamlpp 1.1); the comment layout of libhtreegeom 1.3 is not ported, so a document with comments may differ from the binding |
 | `get_bound_rect`, `check_geometry` | the C++ algorithms, the centre point included |
 

@@ -31,12 +31,14 @@ from .transform import (attach_edge_minimal, clean_tree_geometry,
                         node_is_comment, project_edge_to_borders,
                         reconstruct_edge_loop, shift_subtree,
                         tree_bounding_rect)
-from .types import (BAD_PARAMETER, COMMENT, COMPOSITE, COORD_EPS, FLOW_DOWN,
-                    FLOW_RIGHT, LABEL_HEIGHT, LABEL_WIDTH, LAYER_GAP,
+from .types import (BAD_PARAMETER, CHOICE_SIZE, COMMENT, COMPOSITE,
+                    COORD_EPS, FLOW_DOWN, FLOW_RIGHT, LABEL_HEIGHT,
+                    LABEL_WIDTH, LAYER_GAP,
                     LAYOUT_ADAPTIVE, LAYOUT_ALTERNATE, LAYOUT_ASPECT,
                     LAYOUT_FIXED, LAYOUT_SWEEPS, NODE_GAP, NODE_HEIGHT,
                     NODE_WIDTH, PADDING, POINT, POINT_SIZE, REGION,
-                    ROLE_DEEP_HISTORY, ROLE_ENTRY_POINT, ROLE_EXIT_POINT,
+                    ROLE_CHOICE, ROLE_DEEP_HISTORY, ROLE_ENTRY_POINT,
+                    ROLE_EXIT_POINT,
                     ROLE_FINAL, ROLE_INITIAL, ROLE_NONE, ROLE_SHALLOW_HISTORY,
                     ROLE_TERMINATE, TREE, Edge, GeometryError, LayoutOptions,
                     Node, Point, Rect, Tree)
@@ -67,6 +69,7 @@ def check_options(opts: LayoutOptions) -> LayoutOptions:
                           ('node_width', NODE_WIDTH),
                           ('node_height', NODE_HEIGHT),
                           ('point_size', POINT_SIZE),
+                          ('choice_size', CHOICE_SIZE),
                           ('label_width', LABEL_WIDTH),
                           ('label_height', LABEL_HEIGHT)):
         if getattr(out, name) <= 0:
@@ -1449,6 +1452,18 @@ def _graph_extents(ctx: Context, ci: int,
 def _size_leaf(ctx: Context, node: Node) -> None:
     if node.type == POINT or node.rect is not None:
         return
+    if node.role == ROLE_CHOICE:
+        # a choice is a square: the choice size, else the larger side of
+        # its preset or its seed
+        w, h = _at_least_seed(
+            ctx, node,
+            node.min_rect.width if node.min_rect is not None
+            else ctx.opts.choice_size,
+            node.min_rect.height if node.min_rect is not None
+            else ctx.opts.choice_size)
+        side = w if w > h else h
+        node.rect = Rect(0.0, 0.0, side, side)
+        return
     w, h = _at_least_seed(
         ctx, node,
         node.min_rect.width if node.min_rect is not None
@@ -1808,6 +1823,7 @@ def _find_piece(ctx: Context, ci: int, e: Edge) -> Optional[Piece]:
 def _border_crossing(box: Node, px: float, py: float) -> Optional[Point]:
     # The attachment point on the border of a box toward a point.
     a = Node(1, '')
+    a.role = box.role       # a choice ends at its tips
     a.rect = box.rect
     a.point = box.point
     b = Node(POINT, '')
@@ -1818,7 +1834,7 @@ def _border_crossing(box: Node, px: float, py: float) -> Optional[Point]:
     if not attach_edge_minimal(e):
         if a.rect is None and a.point is None:
             return None
-        project_edge_to_borders(e)
+        project_edge_to_borders(e, True)
     return e.source_point
 
 
@@ -1945,7 +1961,7 @@ def _route_edge(ctx: Context, e: Edge) -> None:
     # the ends
     if not wps:
         if not attach_edge_minimal(e):
-            project_edge_to_borders(e)
+            project_edge_to_borders(e, True)
     else:
         p = _border_crossing(e.source, wps[0].p.x, wps[0].p.y)
         e.source_point = (p if p is not None else sc).copy()

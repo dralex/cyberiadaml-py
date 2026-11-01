@@ -60,6 +60,14 @@ KNOWN = {
     'lapki/compiler-test-initial-states.graphml':
         (('layout', 'update', 'drawn'),
          'the repaired component bodies size their comments'),
+    # recorded with 1.0.9; the binding of libcyberiadamlpp 1.1 gives these
+    # as cml does (test_arrange.py, binding-arrange.json)
+    'lapki/compiler-choices.graphml':
+        (('layout', 'update'), 'the choice glyph of libhtreegeom 1.3'),
+    'lapki/compiler-two-choices.graphml':
+        (('layout', 'update'), 'the choice glyph of libhtreegeom 1.3'),
+    'standard/core/F-ELSE.graphml':
+        (('layout', 'update', 'drawn'), 'the choice glyph of libhtreegeom 1.3'),
 }
 
 

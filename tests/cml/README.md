@@ -14,6 +14,8 @@
   `tools/record_binding_layout.py --arrange` by the binding of libcyberiadamlpp 1.1; a document
   whose full layout the port does not give as that binding (the comment layout of libhtreegeom
   1.3), or whose drawn comments take part in the arrange, is skipped;
+* `test_choice.py` checks the choice of the htgeom port as the libhtreegeom tests 59 and 60 do:
+  a small square, the transitions at the tips of its rhombus;
 * `test_links.py` checks the comment link ends of the htgeom port (the foot on a commented
   transition, beside its label, the fragment links, the stored ends kept) as the libhtreegeom
   tests 49 and 50 do;

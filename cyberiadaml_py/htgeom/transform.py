@@ -294,8 +294,43 @@ def _edges_points_to_absolute(doc: Document) -> None:
                 edge.polyline = None
 
 
-def project_edge_to_borders(edge: Edge) -> None:
-    """Fill the missing ends with the centres, project them on the borders."""
+def choice_tip(n: Optional[Node], tx: float, ty: float) -> Optional[Point]:
+    """Return the tip of the rhombus of a choice facing a point.
+
+    The midpoint of the side of its rect toward the point; None for a node
+    that is not a drawn choice.
+    """
+    if n is None or n.role != ROLE_CHOICE or n.rect is None:
+        return None
+    hw, hh = n.rect.width / 2.0, n.rect.height / 2.0
+    if hw <= 0.0 or hh <= 0.0:
+        return None
+    cx, cy = n.rect.x + hw, n.rect.y + hh
+    dx, dy = tx - cx, ty - cy
+    # the side the way out crosses (EDIT-EDGE-4 of the editor)
+    if abs(dx) / hw >= abs(dy) / hh:
+        return Point(cx + (hw if dx >= 0.0 else -hw), cy)
+    return Point(cx, cy + (hh if dy >= 0.0 else -hh))
+
+
+def _snap_choice_ends(edge: Edge, source_toward: Tuple[float, float],
+                      target_toward: Tuple[float, float]) -> None:
+    # A transition end on a choice is the tip facing the other end.
+    if edge.source_point is not None:
+        tip = choice_tip(edge.source, *source_toward)
+        if tip is not None:
+            edge.source_point.x, edge.source_point.y = tip.x, tip.y
+    if edge.target_point is not None:
+        tip = choice_tip(edge.target, *target_toward)
+        if tip is not None:
+            edge.target_point.x, edge.target_point.y = tip.x, tip.y
+
+
+def project_edge_to_borders(edge: Edge, tips: bool = False) -> None:
+    """Fill the missing ends with the centres, project them on the borders.
+
+    tips: a new end on a choice is a tip (the layout, not a conversion).
+    """
     source, target = edge.source, edge.target
     assert source is not None and target is not None
     if edge.source_point is None:
@@ -327,6 +362,8 @@ def project_edge_to_borders(edge: Edge) -> None:
                                         r.width, r.height)
         if crossings:
             tp.x, tp.y = crossings[0]
+    if tips:
+        _snap_choice_ends(edge, from_toward, to_toward)
 
 
 def _node_centre(n: Node) -> Optional[Point]:
@@ -813,6 +850,7 @@ def attach_edge_minimal(edge: Edge) -> bool:
     # the C library stores these through float
     edge.source_point = Point(f32(px), f32(py))
     edge.target_point = Point(f32(qx), f32(qy))
+    _snap_choice_ends(edge, (qx, qy), (px, py))
     return True
 
 

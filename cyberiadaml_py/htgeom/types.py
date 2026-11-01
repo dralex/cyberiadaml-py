@@ -85,6 +85,7 @@ NODE_WIDTH = 300.0
 NODE_HEIGHT = 200.0
 SHELF_COLUMNS = 3
 POINT_SIZE = 20.0
+CHOICE_SIZE = 40.0          # the side of the square of a choice
 NODE_GAP = 40.0
 LAYER_GAP = 60.0
 LABEL_WIDTH = 80.0
@@ -249,6 +250,7 @@ class LayoutOptions:
         self.node_width = NODE_WIDTH
         self.node_height = NODE_HEIGHT
         self.point_size = POINT_SIZE
+        self.choice_size = CHOICE_SIZE
         self.label_width = LABEL_WIDTH
         self.label_height = LABEL_HEIGHT
 
