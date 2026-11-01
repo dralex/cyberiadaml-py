@@ -1775,6 +1775,15 @@ def _orthogonal_piece(g: Graph, e: LayoutEdge, band_start: List[float],
     m = len(e.chain) - 1
     for i in range(m + 1):
         v = g.vertices[e.chain[i]]
+        dummy = v.kind not in (VERTEX_REAL, VERTEX_VIRTUAL)
+        if i == 1 and dummy and \
+                g.vertices[e.chain[0]].kind == VERTEX_VIRTUAL:
+            # a run from the outside crosses the band of its dummy whole:
+            # its label beside it, the join before
+            piece.bends.append(Point(*_to_doc(g.direction,
+                                              band_start[v.layer],
+                                              _chain_cross(g, e, i))))
+            piece.boxes.append(None)
         if v.kind == VERTEX_REAL and (i == 0 or i == m):
             fs, _ = _node_frame(g, v)
             piece.bends.append(Point(*_to_doc(
@@ -1793,6 +1802,12 @@ def _orthogonal_piece(g: Graph, e: LayoutEdge, band_start: List[float],
             piece.boxes.append(None)
             piece.bends.append(Point(*_to_doc(g.direction, f,
                                               _chain_cross(g, e, i + 1))))
+            piece.boxes.append(None)
+        if i + 1 == m and i >= 1 and dummy and \
+                g.vertices[e.chain[m]].kind == VERTEX_VIRTUAL:
+            # a run to the outside likewise, the join after
+            piece.bends.append(Point(*_to_doc(g.direction, band_end[v.layer],
+                                              _chain_cross(g, e, i))))
             piece.boxes.append(None)
 
 
