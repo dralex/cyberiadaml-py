@@ -78,6 +78,13 @@ class DocumentGeometryFormat(_Enum):
     geometryFormatQt = 3
 
 
+class LayoutRouting(_Enum):
+    """The shapes of the transition routes of the layout."""
+
+    layoutRoutingPolyline = 0
+    layoutRoutingOrthogonal = 1
+
+
 class CommentSubjectType(_Enum):
     """The kinds of the comment subjects."""
 
@@ -157,6 +164,8 @@ geometryFormatNone = DocumentGeometryFormat.geometryFormatNone
 geometryFormatLegacyYED = DocumentGeometryFormat.geometryFormatLegacyYED
 geometryFormatCyberiada10 = DocumentGeometryFormat.geometryFormatCyberiada10
 geometryFormatQt = DocumentGeometryFormat.geometryFormatQt
+layoutRoutingPolyline = LayoutRouting.layoutRoutingPolyline
+layoutRoutingOrthogonal = LayoutRouting.layoutRoutingOrthogonal
 commentSubjectElement = CommentSubjectType.commentSubjectElement
 commentSubjectName = CommentSubjectType.commentSubjectName
 commentSubjectData = CommentSubjectType.commentSubjectData

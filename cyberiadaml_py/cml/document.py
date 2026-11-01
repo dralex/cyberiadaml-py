@@ -257,19 +257,21 @@ class Document(ElementCollection):
                 return False
         return True
 
-    def reconstruct_geometry(self, reconstruct_sm: bool = False) -> None:
+    def reconstruct_geometry(self, reconstruct_sm: bool = False,
+                             routing=None) -> None:
+        """Lay the document out anew, routed as LayoutRouting says."""
         from . import drawing
-        drawing.layout(self, bool(reconstruct_sm), drawing.FULL)
+        drawing.layout(self, bool(reconstruct_sm), drawing.FULL, routing)
 
     def update_geometry(self,  # type: ignore[override]
-                        reconstruct_sm: bool = False) -> None:
+                        reconstruct_sm: bool = False, routing=None) -> None:
         from . import drawing
-        drawing.layout(self, bool(reconstruct_sm), drawing.UPDATE)
+        drawing.layout(self, bool(reconstruct_sm), drawing.UPDATE, routing)
 
     def arrange_geometry(self,  # type: ignore[override]
-                         reconstruct_sm: bool = False) -> None:
+                         reconstruct_sm: bool = False, routing=None) -> None:
         from . import drawing
-        drawing.layout(self, bool(reconstruct_sm), drawing.ARRANGE)
+        drawing.layout(self, bool(reconstruct_sm), drawing.ARRANGE, routing)
 
     def get_bound_rect(self, *args) -> Rect:  # type: ignore[override]
         d = args[0] if args else self

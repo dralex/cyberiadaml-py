@@ -34,7 +34,8 @@ from . import errors
 from .bridge import FORMATS, Bridge
 from .elements import Transition
 from .enums import (geometryDeclarationFull, geometryFormatCyberiada10,
-                    geometryFormatNone, geometryFormatQt)
+                    geometryFormatNone, geometryFormatQt,
+                    layoutRoutingOrthogonal)
 from .geometry import Point, Rect
 
 # the loose rects of the base format (7.2.2)
@@ -221,7 +222,15 @@ def _clean_edges(doc) -> None:
             stack.extend(getattr(element, '_children', []))
 
 
-def layout(doc, reconstruct_sm: bool, mode: str) -> None:
+def _options(routing) -> htgeom.LayoutOptions:
+    # The layout options of the routing (LayoutRouting).
+    opts = htgeom.LayoutOptions()
+    if routing == layoutRoutingOrthogonal:
+        opts.routing = ht.ROUTING_ORTHOGONAL
+    return opts
+
+
+def layout(doc, reconstruct_sm: bool, mode: str, routing=None) -> None:
     """Lay the document out: anew, around its drawing or as it arranges."""
     if doc._geometry_format == geometryFormatNone:
         doc._geometry_format = geometryFormatQt
@@ -237,14 +246,14 @@ def layout(doc, reconstruct_sm: bool, mode: str) -> None:
     try:
         if mode == UPDATE:
             htgeom.update_document_geometry(bridge.document, reconstruct_sm,
-                                            htgeom.LayoutOptions())
+                                            _options(routing))
         elif mode == ARRANGE:
             htgeom.arrange_document_geometry(bridge.document, reconstruct_sm,
-                                             htgeom.LayoutOptions())
+                                             _options(routing))
         else:
             htgeom.reconstruct_document_geometry(bridge.document,
                                                  reconstruct_sm,
-                                                 htgeom.LayoutOptions())
+                                                 _options(routing))
     except ht.GeometryError as error:
         raise _fail(error) from None
     bridge.write_back()

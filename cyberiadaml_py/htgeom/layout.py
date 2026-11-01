@@ -24,6 +24,7 @@
 A port of htgeom_layout.cpp: the phases P1-P10 in the same order and with
 the same arithmetic, so the layout comes out the same.
 """
+import heapq
 import math
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -37,6 +38,7 @@ from .types import (BAD_PARAMETER, CHOICE_SIZE, COMMENT, COMPOSITE,
                     LAYOUT_ADAPTIVE, LAYOUT_ALTERNATE, LAYOUT_ASPECT,
                     LAYOUT_FIXED, LAYOUT_SWEEPS, NODE_GAP, NODE_HEIGHT,
                     NODE_WIDTH, PADDING, POINT, POINT_SIZE, REGION,
+                    CHANNEL_GAP, ROUTING_ORTHOGONAL, ROUTING_POLYLINE,
                     SEED_ALIGN, SEED_PULL, SEED_PULL_STRETCH,
                     ROLE_CHOICE, ROLE_DEEP_HISTORY, ROLE_ENTRY_POINT,
                     ROLE_EXIT_POINT,
@@ -77,6 +79,8 @@ def check_options(opts: LayoutOptions) -> LayoutOptions:
             setattr(out, name, default)
     if out.seed_pull < 0.0:
         out.seed_pull = SEED_PULL     # 0: the order alone
+    if out.routing != ROUTING_ORTHOGONAL:
+        out.routing = ROUTING_POLYLINE
     return out
 
 
@@ -130,6 +134,11 @@ class LayoutEdge:
         self.seeded_ends = False    # both ends seeded (or outside)
         self.drawn_ends = False     # the update: between two pinned vertices
         self.chain: List[int] = []  # source, dummies, target by layer
+        # the orthogonal routing: the ends across the flow, off the centres of
+        # the end vertices; the channel in the gap after each step, 0 straight
+        self.port_s = 0.0
+        self.port_t = 0.0
+        self.channel: List[int] = []
 
 
 class Graph:
@@ -151,6 +160,9 @@ class Graph:
         self.band_lo: List[float] = []     # the update: a drawn layer extent
         self.band_hi: List[float] = []
         self.band_drawn: List[int] = []
+        self.orthogonal = False            # the routes along and across
+        self.channels: List[int] = []      # the channels of the gap after
+        self.gaps: List[float] = []        # the gap after a layer
 
 
 class Seed:
@@ -171,6 +183,7 @@ class Piece:
     def __init__(self, edge: Edge) -> None:
         self.edge = edge
         self.bends: List[Point] = []        # container coordinates
+        self.boxes: List[Optional[Node]] = []  # orthogonal: the port nodes
         self.has_label = False
         self.label = Rect()
 
@@ -499,6 +512,7 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
     g.seeded = ctx.seeded
     g.pinned = ctx.pinned
     g.pull = o.seed_pull if ctx.seeded and not ctx.pinned else 0.0
+    g.orthogonal = o.routing == ROUTING_ORTHOGONAL
     g.vertices = [Vertex() for _ in range(n + 2)]
     g.entry = 0
     g.exit = n + 1
@@ -861,6 +875,7 @@ def _graph_copy(g: Graph) -> Graph:
         copy_e = LayoutEdge(e.source, e.target, e.edge)
         copy_e.__dict__.update(e.__dict__)
         copy_e.chain = list(e.chain)
+        copy_e.channel = list(e.channel)
         result.edges.append(copy_e)
     result.layers = [list(layer) for layer in g.layers]
     result.up = [list(x) for x in g.up]
@@ -869,6 +884,9 @@ def _graph_copy(g: Graph) -> Graph:
     result.band_lo = list(g.band_lo)
     result.band_hi = list(g.band_hi)
     result.band_drawn = list(g.band_drawn)
+    result.orthogonal = g.orthogonal
+    result.channels = list(g.channels)
+    result.gaps = list(g.gaps)
     return result
 
 
@@ -1193,6 +1211,264 @@ def _pull_targets(g: Graph, o: LayoutOptions, centre: List[float]) -> float:
     return scale
 
 
+def _node_frame(g: Graph, v: Vertex) -> Tuple[float, float]:
+    # The orthogonal routing: the extents of the node of a real vertex in
+    # the frame, 0 for a point.
+    if v.kind == VERTEX_REAL and v.node is not None and \
+            v.node.rect is not None:
+        return _size_to_frame(g.direction, v.node.rect.width,
+                              v.node.rect.height)
+    return 0.0, 0.0
+
+
+def _chain_cross(g: Graph, e: LayoutEdge, i: int) -> float:
+    # The cross of a point of a chain: the port of a real end, the line of
+    # a dummy, the next point's for an end outside the container.
+    m = len(e.chain) - 1
+    v = g.vertices[e.chain[i]]
+    if v.kind == VERTEX_VIRTUAL and m >= 1:
+        j = 1 if i == 0 else m - 1
+        if g.vertices[e.chain[j]].kind != VERTEX_VIRTUAL:
+            return _chain_cross(g, e, j)
+    if v.kind == VERTEX_REAL and i == 0:
+        return v.cross + e.port_s
+    if v.kind == VERTEX_REAL and i == m:
+        return v.cross + e.port_t
+    return v.cross
+
+
+def _ports(g: Graph) -> None:
+    # The ports: the ends of a real vertex spread evenly along its side
+    # facing the next layer (the outgoing) and the previous one (the
+    # incoming), in the order of the other point of their step; a choice
+    # ends at its tips and a point at itself, the centre.
+    out: List[List[Tuple[float, int]]] = [[] for _ in g.vertices]
+    in_: List[List[Tuple[float, int]]] = [[] for _ in g.vertices]
+    for k, e in enumerate(g.edges):
+        m = len(e.chain) - 1
+        e.port_s = e.port_t = 0.0
+        e.channel = [0] * m
+        if m < 1:
+            continue
+        out[e.chain[0]].append((g.vertices[e.chain[1]].cross, k))
+        in_[e.chain[m]].append((g.vertices[e.chain[m - 1]].cross, k))
+    for v, vx in enumerate(g.vertices):
+        if vx.kind != VERTEX_REAL:
+            continue
+        _, cs = _node_frame(g, vx)
+        if vx.role == ROLE_CHOICE or cs <= 0.0:
+            continue
+        for side in (0, 1):
+            ends = sorted(in_[v] if side else out[v])
+            for i, (_, k) in enumerate(ends):
+                at = -cs / 2.0 + cs * float(i + 1) / float(len(ends) + 1)
+                if side:
+                    g.edges[k].port_t = at
+                else:
+                    g.edges[k].port_s = at
+
+
+def _dummy_fits(g: Graph, o: LayoutOptions, d: int, cross: float) -> bool:
+    # A dummy at a cross keeps the order and the gaps of its layer.
+    v = g.vertices[d]
+    nodes = g.layers[v.layer]
+    i = v.order
+    if i >= len(nodes) or nodes[i] != d:
+        if d not in nodes:
+            return False
+        i = nodes.index(d)
+    if i > 0:
+        lv = g.vertices[nodes[i - 1]]
+        if lv.cross + lv.after + _gap(g, o, nodes[i - 1], d) + v.before > \
+                cross + COORD_EPS:
+            return False
+    if i + 1 < len(nodes):
+        rv = g.vertices[nodes[i + 1]]
+        if cross + v.after + _gap(g, o, d, nodes[i + 1]) + rv.before > \
+                rv.cross + COORD_EPS:
+            return False
+    return True
+
+
+def _straighten(g: Graph, o: LayoutOptions) -> None:
+    # The dummies of a chain on the line of a port: they move onto the line
+    # of the source port, else of the target port, where every layer has
+    # room - the chain runs straight from its end.
+    for e in g.edges:
+        m = len(e.chain) - 1
+        if m < 2:
+            continue
+        aims = []
+        if g.vertices[e.chain[0]].kind == VERTEX_REAL:
+            aims.append(_chain_cross(g, e, 0))
+        if g.vertices[e.chain[m]].kind == VERTEX_REAL:
+            aims.append(_chain_cross(g, e, m))
+        for aim in aims:
+            if all(abs(g.vertices[e.chain[i]].cross - aim) <= COORD_EPS
+                   for i in range(1, m)):
+                break
+            if not all(_dummy_fits(g, o, e.chain[i], aim)
+                       for i in range(1, m)):
+                continue
+            for i in range(1, m):
+                g.vertices[e.chain[i]].cross = aim
+            break
+
+
+class _Step:
+    """A step across the flow in a gap."""
+
+    def __init__(self, edge: int, step: int, a: float, b: float) -> None:
+        self.edge = edge
+        self.step = step
+        self.a = a
+        self.b = b
+        self.group = -1
+
+
+class _ChannelGroup:
+    def __init__(self, lo: float, hi: float) -> None:
+        self.lo = lo
+        self.hi = hi
+        self.starts: List[float] = []
+        self.ends: List[float] = []
+
+
+def _strictly_in(x: float, lo: float, hi: float) -> bool:
+    return lo + COORD_EPS < x < hi - COORD_EPS
+
+
+def _channel_cost(s: _ChannelGroup, t: _ChannelGroup) -> int:
+    # The crossings when the group s runs nearer the layer before than t.
+    return sum(1 for a in t.starts if _strictly_in(a, s.lo, s.hi)) + \
+        sum(1 for b in s.ends if _strictly_in(b, t.lo, t.hi))
+
+
+def _group_root(parent: List[int], x: int) -> int:
+    while parent[x] != x:
+        parent[x] = parent[parent[x]]
+        x = parent[x]
+    return x
+
+
+def _channels(g: Graph, o: LayoutOptions) -> None:
+    # The channels of the gaps: the groups of the steps across the flow
+    # sharing an end, overlapping groups in different channels ordered
+    # against the crossings, the cycles broken by the depth-first search,
+    # the channel the longest path (the orthogonal router of ELK Layered).
+    g.channels = [0] * (g.last + 2)
+    g.gaps = [o.layer_gap] * (g.last + 2)
+    for layer in range(1, g.last):
+        steps: List[_Step] = []
+        for k, e in enumerate(g.edges):
+            for i in range(len(e.chain) - 1):
+                if g.vertices[e.chain[i]].layer != layer or \
+                        g.vertices[e.chain[i + 1]].kind == VERTEX_VIRTUAL:
+                    continue
+                a = _chain_cross(g, e, i)
+                b = _chain_cross(g, e, i + 1)
+                if abs(a - b) > COORD_EPS:
+                    steps.append(_Step(k, i, a, b))
+        if not steps:
+            continue
+        parent = list(range(len(steps)))
+        for s, st in enumerate(steps):
+            es = g.edges[st.edge]
+            s0, s1 = es.chain[st.step], es.chain[st.step + 1]
+            for u in range(s + 1, len(steps)):
+                su = steps[u]
+                eu = g.edges[su.edge]
+                u0, u1 = eu.chain[su.step], eu.chain[su.step + 1]
+                start = s0 == u0 and \
+                    g.vertices[s0].kind == VERTEX_REAL and \
+                    abs(st.a - su.a) <= COORD_EPS
+                end = s1 == u1 and g.vertices[s1].kind == VERTEX_REAL and \
+                    abs(st.b - su.b) <= COORD_EPS
+                if start or end:
+                    ru = _group_root(parent, u)
+                    parent[ru] = _group_root(parent, s)
+        gindex = [-1] * len(steps)
+        groups: List[_ChannelGroup] = []
+        for s, st in enumerate(steps):
+            r = _group_root(parent, s)
+            lo = st.a if st.a < st.b else st.b
+            hi = st.b if st.a < st.b else st.a
+            if gindex[r] < 0:
+                gindex[r] = len(groups)
+                groups.append(_ChannelGroup(lo, hi))
+            cg = groups[gindex[r]]
+            if lo < cg.lo:
+                cg.lo = lo
+            if hi > cg.hi:
+                cg.hi = hi
+            cg.starts.append(st.a)
+            cg.ends.append(st.b)
+            st.group = gindex[r]
+        n = len(groups)
+        after: List[List[int]] = [[] for _ in range(n)]
+        for s in range(n):
+            for t in range(s + 1, n):
+                if groups[s].lo > groups[t].hi + COORD_EPS or \
+                        groups[t].lo > groups[s].hi + COORD_EPS:
+                    continue
+                if _channel_cost(groups[s], groups[t]) <= \
+                        _channel_cost(groups[t], groups[s]):
+                    after[s].append(t)
+                else:
+                    after[t].append(s)
+        # the cycles: a back arc of the depth-first search is reversed
+        dag: List[List[int]] = [[] for _ in range(n)]
+        state = [0] * n
+        for r in range(n):
+            if state[r]:
+                continue
+            state[r] = 1
+            stack = [[r, 0]]
+            while stack:
+                u = stack[-1][0]
+                if stack[-1][1] < len(after[u]):
+                    v = after[u][stack[-1][1]]
+                    stack[-1][1] += 1
+                    if state[v] == 1:
+                        dag[v].append(u)
+                    else:
+                        dag[u].append(v)
+                        if state[v] == 0:
+                            state[v] = 1
+                            stack.append([v, 0])
+                else:
+                    state[u] = 2
+                    stack.pop()
+        # the channels: the longest path from the layer before
+        indegree = [0] * n
+        level = [1] * n
+        for u in range(n):
+            for v in dag[u]:
+                indegree[v] += 1
+        order = [u for u in range(n) if not indegree[u]]
+        i = 0
+        while i < len(order):
+            u = order[i]
+            for v in dag[u]:
+                if level[u] + 1 > level[v]:
+                    level[v] = level[u] + 1
+                indegree[v] -= 1
+                if indegree[v] == 0:
+                    order.append(v)
+            i += 1
+        channels = max(level) if level else 0
+        for st in steps:
+            g.edges[st.edge].channel[st.step] = level[st.group]
+        g.channels[layer] = channels
+        if (channels + 1) * CHANNEL_GAP > g.gaps[layer]:
+            g.gaps[layer] = (channels + 1) * CHANNEL_GAP
+
+
+def _gap_after(g: Graph, o: LayoutOptions, layer: int) -> float:
+    # The gap after a layer: the layer gap, wider for the channels.
+    return g.gaps[layer] if 0 <= layer < len(g.gaps) else o.layer_gap
+
+
 def _priority_passes(g: Graph, o: LayoutOptions) -> None:
     t = (g.last + 1) // 2
     for layer in range(1, g.last + 1):
@@ -1216,6 +1492,10 @@ def _assign_coordinates(g: Graph, o: LayoutOptions) -> None:
             for layer in range(1, g.last + 1):
                 _pack_layer(g, o, layer)
             _priority_passes(g, o)
+    if g.orthogonal:
+        _ports(g)
+        _straighten(g, o)
+        _channels(g, o)
     if g.pinned:
         # the drawn bands keep their drawn flow positions
         cursor = shift = 0.0
@@ -1289,10 +1569,10 @@ def _assign_coordinates(g: Graph, o: LayoutOptions) -> None:
                     at += pull * (target - at)
         for w in nodes:
             g.vertices[w].flow = at
-        start = at + band / 2.0 + o.layer_gap
+        start = at + band / 2.0 + _gap_after(g, o, layer)
     g.vertices[g.entry].flow = 0.0
-    g.vertices[g.exit].flow = start - o.layer_gap \
-        if start > o.layer_gap else 0.0
+    gap = _gap_after(g, o, g.last)
+    g.vertices[g.exit].flow = start - gap if start > gap else 0.0
 
 
 def _segment_in_box(p: Point, q: Point, f0: float, f1: float, c0: float,
@@ -1470,6 +1750,52 @@ def _normalise(g: Graph) -> Tuple[float, float]:
     return (f1 - f0 if any_ else 0.0), (c1 - c0 if any_ else 0.0)
 
 
+def _bands(g: Graph) -> Tuple[List[float], List[float]]:
+    # The orthogonal routing: the extents of the bands along the flow.
+    any_ = [False] * (g.last + 2)
+    start = [0.0] * (g.last + 2)
+    end = [0.0] * (g.last + 2)
+    for vx in g.vertices:
+        a = vx.flow - vx.flow_size / 2.0
+        b = vx.flow + vx.flow_size / 2.0
+        if vx.kind == VERTEX_VIRTUAL or vx.layer < 1 or vx.layer > g.last:
+            continue
+        if not any_[vx.layer] or a < start[vx.layer]:
+            start[vx.layer] = a
+        if not any_[vx.layer] or b > end[vx.layer]:
+            end[vx.layer] = b
+        any_[vx.layer] = True
+    return start, end
+
+
+def _orthogonal_piece(g: Graph, e: LayoutEdge, band_start: List[float],
+                      band_end: List[float], piece: Piece) -> None:
+    # The piece of an edge in the layout direction: the port on the side of
+    # a real end, the turns of a step in its channel.
+    m = len(e.chain) - 1
+    for i in range(m + 1):
+        v = g.vertices[e.chain[i]]
+        if v.kind == VERTEX_REAL and (i == 0 or i == m):
+            fs, _ = _node_frame(g, v)
+            piece.bends.append(Point(*_to_doc(
+                g.direction, v.flow + fs / 2.0 if i == 0
+                else v.flow - fs / 2.0, _chain_cross(g, e, i))))
+            piece.boxes.append(v.node)
+        if i < m and i < len(e.channel) and e.channel[i] > 0:
+            layer = v.layer
+            lo = band_end[layer]
+            room = band_start[layer + 1] - band_end[layer]
+            if room < 0.0:
+                room = 0.0
+            f = lo + e.channel[i] * room / (g.channels[layer] + 1)
+            piece.bends.append(Point(*_to_doc(g.direction, f,
+                                              _chain_cross(g, e, i))))
+            piece.boxes.append(None)
+            piece.bends.append(Point(*_to_doc(g.direction, f,
+                                              _chain_cross(g, e, i + 1))))
+            piece.boxes.append(None)
+
+
 def _apply_graph(ctx: Context, ci: int, g: Graph) -> None:
     """Place the children and record the edge pieces."""
     c = ctx.containers[ci]
@@ -1488,8 +1814,14 @@ def _apply_graph(ctx: Context, ci: int, g: Graph) -> None:
                 node.point = Point()
             node.point.x = x
             node.point.y = y
+    band_start: List[float] = []
+    band_end: List[float] = []
+    if g.orthogonal:
+        band_start, band_end = _bands(g)
     for e in g.edges:
         piece = Piece(e.edge)
+        if g.orthogonal:
+            _orthogonal_piece(g, e, band_start, band_end, piece)
         for i in range(1, len(e.chain) - 1):
             d = g.vertices[e.chain[i]]
             if d.kind == VERTEX_LABEL_DUMMY:
@@ -1503,6 +1835,8 @@ def _apply_graph(ctx: Context, ci: int, g: Graph) -> None:
                     piece.label.y = d.cross + o.padding / 2.0
                 piece.label.width = e.label_w
                 piece.label.height = e.label_h
+            if g.orthogonal:
+                continue
             if d.layer < len(g.band_drawn) and g.band_drawn[d.layer]:
                 # the update: in a drawn band the line runs along the band
                 piece.bends.append(Point(*_to_doc(g.direction,
@@ -1515,6 +1849,7 @@ def _apply_graph(ctx: Context, ci: int, g: Graph) -> None:
             piece.bends.append(Point(*_to_doc(g.direction, d.flow, d.cross)))
         if e.reversed:
             piece.bends.reverse()
+            piece.boxes.reverse()
         c.pieces.append(piece)
 
 
@@ -2014,8 +2349,304 @@ def _append_piece(ctx: Context, ci: int, e: Edge,
     if piece is None:
         return
     ox, oy = _origin(ctx, ci)
-    for b in piece.bends:
-        wps.append(_Waypoint(False, None, Point(b.x + ox, b.y + oy), False))
+    for i, b in enumerate(piece.bends):
+        box = piece.boxes[i] if i < len(piece.boxes) else None
+        wps.append(_Waypoint(False, box, Point(b.x + ox, b.y + oy), False))
+
+
+# The orthogonal routing: the joins in axis runs.
+ALIGNED = 0.01      # two points this close on an axis are aligned
+BEND = 40.0         # the length a turn of a detour costs
+
+
+def _side(box: Optional[Node], p: Point) -> int:
+    # The side of its box a point lies on: -1 none, 0 left, 1 right, 2 top,
+    # 3 bottom.
+    if box is None or box.rect is None:
+        return -1
+    r = box.rect
+    d = [abs(p.x - r.x), abs(p.x - r.x - r.width), abs(p.y - r.y),
+         abs(p.y - r.y - r.height)]
+    best = 0
+    for k in range(1, 4):
+        if d[k] < d[best]:
+            best = k
+    return -1 if d[best] > ALIGNED else best
+
+
+def _side_axis(side: int) -> int:
+    return 0 if side < 0 else (1 if side < 2 else 2)
+
+
+def _rect_side(p: Point, r: Rect) -> int:
+    # 1 strictly inside the rect, -1 strictly outside, 0 on its border.
+    e = ALIGNED
+    if p.x < r.x - e or p.x > r.x + r.width + e or p.y < r.y - e or \
+            p.y > r.y + r.height + e:
+        return -1
+    if r.x + e < p.x < r.x + r.width - e and \
+            r.y + e < p.y < r.y + r.height - e:
+        return 1
+    return 0
+
+
+def _run_hits(a: Point, b: Point, box: Optional[Node]) -> bool:
+    # An axis run crosses the border of a box or lies along it.
+    e = ALIGNED
+    r = box.rect if box is not None else None
+    if r is None:
+        return False
+    sa = _rect_side(a, r)
+    sb = _rect_side(b, r)
+    if sa * sb < 0:
+        return True
+    if abs(a.y - b.y) <= e:
+        x0, x1 = (a.x, b.x) if a.x < b.x else (b.x, a.x)
+        if x1 <= r.x + e or x0 >= r.x + r.width - e:
+            return False
+        if abs(a.y - r.y) <= e or abs(a.y - r.y - r.height) <= e:
+            return True
+        return sa < 0 and sb < 0 and r.y < a.y < r.y + r.height
+    if abs(a.x - b.x) <= e:
+        y0, y1 = (a.y, b.y) if a.y < b.y else (b.y, a.y)
+        if y1 <= r.y + e or y0 >= r.y + r.height - e:
+            return False
+        if abs(a.x - r.x) <= e or abs(a.x - r.x - r.width) <= e:
+            return True
+        return sa < 0 and sb < 0 and r.x < a.x < r.x + r.width
+    return False
+
+
+def _stub(ctx: Context, box: Node, side: int, p: Point,
+          other: Point) -> Point:
+    # A padding half across the side, inward when the other point is inside.
+    assert box.rect is not None
+    d = ctx.opts.padding / 2.0
+    if _rect_side(other, box.rect) > 0:
+        d = -d
+    s = Point(p.x, p.y)
+    if side == 0:
+        s.x -= d
+    elif side == 1:
+        s.x += d
+    elif side == 2:
+        s.y -= d
+    else:
+        s.y += d
+    return s
+
+
+def _obstacles(nodes: List[Node], out: List[Node]) -> None:
+    # The boxes a route keeps off: the comments and the regions aside.
+    for n in nodes:
+        if n.rect is not None and n.type != REGION and \
+                not node_is_comment(n):
+            out.append(n)
+        if n.children:
+            _obstacles(n.children, out)
+
+
+def _run_clear(a: Point, b: Point, boxes: List[Node]) -> bool:
+    return not any(_run_hits(a, b, box) for box in boxes)
+
+
+def _path_clear(pa: Point, mid: List[Point], pc: Point,
+                boxes: List[Node]) -> bool:
+    prev = pa
+    for nxt in mid + [pc]:
+        if not _run_clear(prev, nxt, boxes):
+            return False
+        prev = nxt
+    return True
+
+
+def _unique(v: List[float]) -> List[float]:
+    out: List[float] = []
+    for x in sorted(v):
+        if not out or x - out[-1] > ALIGNED:
+            out.append(x)
+    return out
+
+
+def _nearest(v: List[float], x: float) -> int:
+    best = 0
+    for i in range(1, len(v)):
+        if abs(v[i] - x) < abs(v[best] - x):
+            best = i
+    return best
+
+
+def _detour(ctx: Context, pa: Point, pc: Point, axis: int,
+            boxes: List[Node]) -> Optional[List[Point]]:
+    # The shortest way in axis runs, a turn costing BEND, over the lines of
+    # the ends and a padding half off the sides of the boxes.
+    pad = ctx.opts.padding / 2.0
+    xs = [pa.x, pc.x]
+    ys = [pa.y, pc.y]
+    for box in boxes:
+        r = box.rect
+        assert r is not None
+        xs += [r.x - pad, r.x + r.width + pad]
+        ys += [r.y - pad, r.y + r.height + pad]
+    xs = _unique(xs)
+    ys = _unique(ys)
+    ny = len(ys)
+    ia, ja = _nearest(xs, pa.x), _nearest(ys, pa.y)
+    ic, jc = _nearest(xs, pc.x), _nearest(ys, pc.y)
+    cost = [-1.0] * (len(xs) * ny * 2)
+    from_ = [-1] * (len(xs) * ny * 2)
+    queue: List[Tuple[float, int]] = []
+    for d in (0, 1):
+        if axis and axis - 1 != d:
+            continue
+        s = (ia * ny + ja) * 2 + d
+        cost[s] = 0.0
+        heapq.heappush(queue, (0.0, s))
+    goal = -1
+    while queue:
+        c0, s = heapq.heappop(queue)
+        d = s % 2
+        i, j = (s // 2) // ny, (s // 2) % ny
+        if c0 > cost[s]:
+            continue
+        if i == ic and j == jc:
+            goal = s
+            break
+        for k in range(4):
+            ni = i + (-1 if k == 0 else 1 if k == 1 else 0)
+            nj = j + (-1 if k == 2 else 1 if k == 3 else 0)
+            nd = 0 if k < 2 else 1
+            if ni < 0 or nj < 0 or ni >= len(xs) or nj >= ny:
+                continue
+            a = Point(xs[i], ys[j])
+            b = Point(xs[ni], ys[nj])
+            if not _run_clear(a, b, boxes):
+                continue
+            c = c0 + abs(b.x - a.x) + abs(b.y - a.y) + \
+                (BEND if nd != d else 0.0)
+            ns = (ni * ny + nj) * 2 + nd
+            if cost[ns] < 0.0 or c < cost[ns] - COORD_EPS:
+                cost[ns] = c
+                from_[ns] = s
+                heapq.heappush(queue, (c, ns))
+    if goal < 0:
+        return None
+    path: List[Point] = []
+    s = goal
+    while s >= 0:
+        p = Point(xs[(s // 2) // ny], ys[(s // 2) % ny])
+        if not path or abs(path[-1].x - p.x) > ALIGNED or \
+                abs(path[-1].y - p.y) > ALIGNED:
+            path.append(p)
+        s = from_[s]
+    path.reverse()
+    return path[1:-1]
+
+
+def _join(ctx: Context, a: Point, ba: Optional[Node], axis_a: int, c: Point,
+          bc: Optional[Node], boxes: List[Node], q: List[Point],
+          qb: List[Optional[Node]]) -> None:
+    # The join of two points in axis runs: the stubs of the points on the
+    # sides of their boxes, then the first way clear of the boxes - a turn
+    # (the way the first point goes preferred), a detour, else a step
+    # halfway.
+    e = ALIGNED
+    side_a = _side(ba, a)
+    side_c = _side(bc, c)
+    need_c = _side_axis(side_c)
+    aligned_x = abs(a.y - c.y) <= e
+    aligned_y = abs(a.x - c.x) <= e
+    if side_a >= 0:
+        axis_a = _side_axis(side_a)
+    if (aligned_x and axis_a in (0, 1) and need_c in (0, 1)) or \
+            (aligned_y and axis_a in (0, 2) and need_c in (0, 2)):
+        q.append(c)
+        qb.append(bc)
+        return
+    pa = _stub(ctx, ba, side_a, a, c) if side_a >= 0 and ba is not None \
+        else a
+    pc = _stub(ctx, bc, side_c, c, a) if side_c >= 0 and bc is not None \
+        else c
+    first = 1 if axis_a == 2 or (not axis_a and (
+        need_c == 1 or (not need_c and abs(c.y - a.y) > abs(c.x - a.x)))) \
+        else 0
+    best: Optional[List[Point]] = None
+    for j in range(2):
+        k = first if j == 0 else 1 - first
+        t = Point(pc.x, pa.y) if k == 0 else Point(pa.x, pc.y)
+        if _path_clear(pa, [t], pc, boxes):
+            best = [t]
+            break
+    if best is None:
+        best = _detour(ctx, pa, pc, axis_a, boxes)
+    if best is None:
+        if first == 0:
+            mx = (pa.x + pc.x) / 2.0
+            best = [Point(mx, pa.y), Point(mx, pc.y)]
+        else:
+            my = (pa.y + pc.y) / 2.0
+            best = [Point(pa.x, my), Point(pc.x, my)]
+    if side_a >= 0:
+        q.append(pa)
+        qb.append(None)
+    for t in best:
+        q.append(t)
+        qb.append(None)
+    if side_c >= 0:
+        q.append(pc)
+        qb.append(None)
+    q.append(c)
+    qb.append(bc)
+
+
+def _orthogonal_route(ctx: Context, e: Edge, wps: List['_Waypoint']) -> None:
+    # The route made orthogonal: the joins of the pieces, the containers and
+    # the ends in axis runs, the repeated and the straight-through points
+    # dropped.
+    if e.source_point is None or e.target_point is None:
+        return
+    boxes: List[Node] = []
+    _obstacles(ctx.tree.nodes, boxes)
+    p = [e.source_point] + [w.p for w in wps] + [e.target_point]
+    b: List[Optional[Node]] = [e.source] + [w.box for w in wps] + \
+        [e.target]
+    q: List[Point] = []
+    qb: List[Optional[Node]] = []
+    # the repeated points: the inner one kept (exact, not through float)
+    for i, pt in enumerate(p):
+        if q and abs(q[-1].x - pt.x) <= ALIGNED and \
+                abs(q[-1].y - pt.y) <= ALIGNED:
+            if len(q) == 1 and i + 1 < len(p):
+                q[-1] = pt
+            if qb[-1] is None:
+                qb[-1] = b[i]
+            continue
+        q.append(pt)
+        qb.append(b[i])
+    p, b = q, qb
+    q = [p[0]]
+    qb = [b[0]]
+    for i in range(1, len(p)):
+        a = q[-1]
+        axis = 0
+        if len(q) > 1:
+            z = q[-2]
+            axis = 1 if abs(z.y - a.y) <= ALIGNED else 2
+        _join(ctx, a, qb[-1], axis, p[i], b[i], boxes, q, qb)
+    # the points a straight run passes through
+    p = []
+    for i, pt in enumerate(q):
+        if p and i + 1 < len(q):
+            z = p[-1]
+            n = q[i + 1]
+            along_y = abs(z.x - pt.x) <= ALIGNED and abs(pt.x - n.x) <= ALIGNED
+            along_x = abs(z.y - pt.y) <= ALIGNED and abs(pt.y - n.y) <= ALIGNED
+            if along_x or along_y:
+                continue
+        p.append(pt)
+    e.source_point = Point(p[0].x, p[0].y)
+    e.target_point = Point(p[-1].x, p[-1].y)
+    e.polyline = [Point(pt.x, pt.y) for pt in p[1:-1]] or None
 
 
 def _route_loop(ctx: Context, e: Edge) -> None:
@@ -2129,6 +2760,8 @@ def _route_edge(ctx: Context, e: Edge) -> None:
         p = _border_crossing(e.target, wps[-1].p.x, wps[-1].p.y)
         e.target_point = (p if p is not None else tc).copy()
         e.polyline = [w.p.copy() for w in wps]
+    if ctx.opts.routing == ROUTING_ORTHOGONAL:
+        _orthogonal_route(ctx, e, wps)
     # the label: the slot of the tail piece, or beside the first segment
     if e.label_rect is not None:
         o = ctx.opts
@@ -2147,7 +2780,7 @@ def _route_edge(ctx: Context, e: Edge) -> None:
         else:
             assert e.source_point is not None and e.target_point is not None
             a = e.source_point
-            b = e.target_point if not wps else wps[0].p
+            b = e.polyline[0] if e.polyline else e.target_point
             e.label_rect.x = (a.x + b.x) / 2.0 + o.padding
             e.label_rect.y = (a.y + b.y) / 2.0 - h_ / 2.0
 
@@ -2299,7 +2932,9 @@ def _route_edges(ctx: Context) -> None:
             _route_loop(ctx, e)
             continue
         _route_edge(ctx, e)
-    _spread_pairs(ctx)
+    # the ports spread the orthogonal routes already
+    if ctx.opts.routing != ROUTING_ORTHOGONAL:
+        _spread_pairs(ctx)
 
 
 # P10: the comments

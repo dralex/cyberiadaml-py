@@ -92,6 +92,11 @@ CHOICE_SIZE = 40.0          # the side of the square of a choice
 SEED_PULL = 1.0
 SEED_PULL_STRETCH = 3.0
 SEED_ALIGN = 0.25
+# the routes: the straight segments through the bends of the layers, or the
+# runs along and across the flow; the distance between the channels of a gap
+ROUTING_POLYLINE = 0
+ROUTING_ORTHOGONAL = 1
+CHANNEL_GAP = 20.0
 NODE_GAP = 40.0
 LAYER_GAP = 60.0
 LABEL_WIDTH = 80.0
@@ -258,6 +263,7 @@ class LayoutOptions:
         self.point_size = POINT_SIZE
         self.choice_size = CHOICE_SIZE
         self.seed_pull = SEED_PULL      # the arrange: 0 the order alone
+        self.routing = ROUTING_POLYLINE  # the shape of the routes
         self.label_width = LABEL_WIDTH
         self.label_height = LABEL_HEIGHT
 

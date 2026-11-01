@@ -24,7 +24,8 @@
     LD_LIBRARY_PATH=... PYTHONPATH=<binding build> \
         python3 tools/record_binding_layout.py
 
-writes tests/cml/binding-layout.json: per example (tests/examples) the
+writes tests/cml/binding-layout.json (--arrange: binding-arrange.json,
+--orthogonal: binding-orthogonal.json): per example (tests/examples) the
 results of the scenarios below - the dump of the document or the class of
 the exception. tests/cml/test_layout.py runs the same with cml. Every
 example runs in a process of its own: a crash of the binding loses one.
@@ -48,6 +49,8 @@ EXAMPLES = ROOT / 'tests' / 'examples'
 LAYOUT = ROOT / 'tests' / 'cml' / 'binding-layout.json'
 ARRANGE = ROOT / 'tests' / 'cml' / 'binding-arrange.json'
 ARRANGE_FLAG = '--arrange'
+ORTHOGONAL = ROOT / 'tests' / 'cml' / 'binding-orthogonal.json'
+ORTHOGONAL_FLAG = '--orthogonal'
 FILE = re.compile(r", file: '[^']*'")
 
 
@@ -104,9 +107,23 @@ def _arranged(module, path: pathlib.Path) -> str:
     return _dump(document)
 
 
+def _orthogonal(module, path: pathlib.Path) -> str:
+    document = _open(module, path)
+    document.reconstruct_geometry(True, module.layoutRoutingOrthogonal)
+    return _dump(document)
+
+
+def _orthogonal_arranged(module, path: pathlib.Path) -> str:
+    document = _open(module, path)
+    document.arrange_geometry(True, module.layoutRoutingOrthogonal)
+    return _dump(document)
+
+
 SCENARIOS = {'qt': lambda m, p: _dump(_open(m, p)), 'saved': _saved,
              'layout': _layout, 'update': _update, 'drawn': _drawn}
 ARRANGE_SCENARIOS = {'layout': _layout, 'arranged': _arranged}
+ORTHOGONAL_SCENARIOS = {'layout': _layout, 'orthogonal': _orthogonal,
+                        'arranged': _orthogonal_arranged}
 
 
 def run(module, path: pathlib.Path, scenarios: Optional[dict] = None) -> dict:
@@ -129,9 +146,13 @@ def documents():
 def main() -> int:
     """Record the results of the importable CyberiadaML module."""
     args = sys.argv[1:]
-    arrange = ARRANGE_FLAG in args
-    args = [a for a in args if a != ARRANGE_FLAG]
-    scenarios = ARRANGE_SCENARIOS if arrange else SCENARIOS
+    flags = [a for a in args if a in (ARRANGE_FLAG, ORTHOGONAL_FLAG)]
+    args = [a for a in args if a not in flags]
+    scenarios, out = SCENARIOS, LAYOUT
+    if ARRANGE_FLAG in flags:
+        scenarios, out = ARRANGE_SCENARIOS, ARRANGE
+    elif ORTHOGONAL_FLAG in flags:
+        scenarios, out = ORTHOGONAL_SCENARIOS, ORTHOGONAL
     if len(args) == 1:
         import CyberiadaML  # type: ignore[import-not-found]
         print(json.dumps(run(CyberiadaML, pathlib.Path(args[0]), scenarios)))
@@ -140,8 +161,7 @@ def main() -> int:
     results = {}
     for path in documents():
         name = str(path.relative_to(EXAMPLES))
-        child = subprocess.run([sys.executable, __file__, str(path)] +
-                               ([ARRANGE_FLAG] if arrange else []),
+        child = subprocess.run([sys.executable, __file__, str(path)] + flags,
                                capture_output=True, text=True)
         if child.returncode:
             results[name] = {'crash': child.stderr.strip().splitlines()[-1:]}
@@ -149,7 +169,7 @@ def main() -> int:
             results[name] = json.loads(child.stdout)
     record = {'binding': getattr(CyberiadaML, '__version__', '?'),
               'documents': results}
-    (ARRANGE if arrange else LAYOUT).write_text(
+    out.write_text(
         json.dumps(record, indent=1, ensure_ascii=False) + '\n',
         encoding='utf-8')
     print('%d documents recorded' % len(results))

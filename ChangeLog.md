@@ -5,6 +5,10 @@
 Added:
 - the choice glyph of libhtreegeom 1.3 in the htgeom port: a choice is a square of
   `LayoutOptions.choice_size` (40), its transitions end at the tips of its rhombus;
+- the orthogonal routing of libhtreegeom 1.3 in the htgeom port
+  (`LayoutOptions.routing`, `ROUTING_ORTHOGONAL`) and in cml (`LayoutRouting`,
+  the `routing` argument of `reconstruct_geometry`, `update_geometry` and
+  `arrange_geometry`, the polylines by default);
 - the pull of the arrange of libhtreegeom 1.3 in the htgeom port
   (`LayoutOptions.seed_pull`): the seeded places scaled to the least distances,
   the rows drawn askew in line;
