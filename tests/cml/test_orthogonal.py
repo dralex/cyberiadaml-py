@@ -156,6 +156,46 @@ def test_levels(frame):
     assert _through(tree, sm.children + comp.children) == 0
 
 
+def test_drawn_sides():
+    """66: the orthogonal arrange keeps the drawn sides along the flow."""
+    sm = _node(None, ht.TREE, 'sm')
+    v = {}
+    for id_, x, y in (('a', 0, 300), ('b', 400, 300), ('c', 800, 300),
+                      ('d', 1200, 0), ('f', 1200, 600)):
+        v[id_] = _node(sm, ht.SIMPLE, id_)
+        v[id_].rect = ht.Rect(x, y, 120, 80)
+    ch = _node(sm, ht.SIMPLE, 'ch', ht.ROLE_CHOICE)
+    ch.rect = ht.Rect(1000, 320, 40, 40)
+    doc, tree = _document(sm)
+    drawn = {}
+    for (s, t), ends in (((v['a'], v['b']), (0, 340, 400, 340)),
+                         ((v['b'], v['c']), None),
+                         ((v['a'], v['c']), (60, 380, 860, 380)),
+                         ((v['c'], ch), None),
+                         ((ch, v['d']), (1020, 320, 1200, 40)),
+                         ((ch, v['f']), (1020, 360, 1200, 640))):
+        e = _edge(tree, s, t, None if t is ch else (60.0, 20.0))
+        if ends is not None:
+            e.source_point = ht.Point(*ends[:2])
+            e.target_point = ht.Point(*ends[2:])
+        drawn[(s.id, t.id)] = e
+    opts = ht.LayoutOptions()
+    opts.routing = ht.ROUTING_ORTHOGONAL
+    htgeom.arrange_document_geometry(doc, True, opts)
+    a, c = v['a'].rect, v['c'].rect
+    ac, ab = drawn[('a', 'c')], drawn[('a', 'b')]
+    assert abs(ac.source_point.y - a.y - a.height) < EPS
+    assert abs(ac.target_point.y - c.y - c.height) < EPS
+    assert abs(ab.source_point.x - a.x - a.width) < EPS
+    top = (ch.rect.x + ch.rect.width / 2.0, ch.rect.y)
+    bottom = (top[0], ch.rect.y + ch.rect.height)
+    for key, tip in ((('ch', 'd'), top), (('ch', 'f'), bottom)):
+        p = drawn[key].source_point
+        assert abs(p.x - tip[0]) < EPS and abs(p.y - tip[1]) < EPS
+    assert _oblique(tree) == 0
+    assert _through(tree, sm.children) == 0
+
+
 def test_polylines_default():
     """65: the polylines the default; the routing of cml."""
     assert ht.LayoutOptions().routing == ht.ROUTING_POLYLINE

@@ -39,6 +39,7 @@ from .types import (BAD_PARAMETER, CHOICE_SIZE, COMMENT, COMPOSITE,
                     LAYOUT_FIXED, LAYOUT_SWEEPS, NODE_GAP, NODE_HEIGHT,
                     NODE_WIDTH, PADDING, POINT, POINT_SIZE, REGION,
                     CHANNEL_GAP, ROUTING_ORTHOGONAL, ROUTING_POLYLINE,
+                    SIDE_BOTTOM, SIDE_LEFT, SIDE_RIGHT, SIDE_TOP,
                     SEED_ALIGN, SEED_PULL, SEED_PULL_STRETCH,
                     ROLE_CHOICE, ROLE_DEEP_HISTORY, ROLE_ENTRY_POINT,
                     ROLE_EXIT_POINT,
@@ -143,6 +144,13 @@ class LayoutEdge:
         # border at a point off its centre, its inner flow running so
         self.inner: List[Optional[Point]] = [None, None]
         self.inner_dir = [0, 0]
+        # the drawn side of the end (SIDE_*, -1 none); a port on a side along
+        # the flow: -1 the low cross side, 1 the high one, 0 none; its place
+        # along the side and the lane of its run, off the centre
+        self.side = [-1, -1]
+        self.lat = [0, 0]
+        self.lat_flow = [0.0, 0.0]
+        self.lat_lane = [0.0, 0.0]
 
 
 class Graph:
@@ -224,6 +232,8 @@ class Context:
         self.seeds: Dict[Node, Point] = {}      # the centres before
         self.seed_sizes: Dict[Node, Rect] = {}  # the arrange: the minimums
         self.edge_seeds: Set[Edge] = set()      # the edges with geometry
+        # the arrange, orthogonal: the drawn sides of the ends (SIDE_*, -1)
+        self.end_sides: Dict[Edge, Tuple[int, int]] = {}
         self.routed: Set[Edge] = set()          # routed in this pass
 
 
@@ -593,6 +603,15 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
                        s.edge)
         e.seeded_ends = seeded_ends
         e.drawn_ends = drawn_ends
+        sides = ctx.end_sides.get(s.edge)
+        if sides is not None:
+            # a drawn side holds for an end that is the child itself
+            if s.source_child >= 0 and \
+                    c.children[s.source_child] is s.edge.source:
+                e.side[0] = sides[0]
+            if s.target_child >= 0 and \
+                    c.children[s.target_child] is s.edge.target:
+                e.side[1] = sides[1]
         if o.routing == ROUTING_ORTHOGONAL:
             for k, (child, end, leaving) in enumerate((
                     (s.source_child, s.edge.source, True),
@@ -617,6 +636,7 @@ def _reverse_edge(e: LayoutEdge) -> None:
     e.source, e.target = e.target, e.source
     e.inner.reverse()
     e.inner_dir.reverse()
+    e.side.reverse()
     e.reversed = not e.reversed
 
 
@@ -922,6 +942,10 @@ def _graph_copy(g: Graph) -> Graph:
         copy_e.channel = list(e.channel)
         copy_e.inner = list(e.inner)
         copy_e.inner_dir = list(e.inner_dir)
+        copy_e.side = list(e.side)
+        copy_e.lat = list(e.lat)
+        copy_e.lat_flow = list(e.lat_flow)
+        copy_e.lat_lane = list(e.lat_lane)
         result.edges.append(copy_e)
     result.layers = [list(layer) for layer in g.layers]
     result.up = [list(x) for x in g.up]
@@ -1277,9 +1301,9 @@ def _chain_cross(g: Graph, e: LayoutEdge, i: int) -> float:
         if g.vertices[e.chain[j]].kind != VERTEX_VIRTUAL:
             return _chain_cross(g, e, j)
     if v.kind == VERTEX_REAL and i == 0:
-        return v.cross + e.port_s
+        return v.cross + (e.lat_lane[0] if e.lat[0] else e.port_s)
     if v.kind == VERTEX_REAL and i == m:
-        return v.cross + e.port_t
+        return v.cross + (e.lat_lane[1] if e.lat[1] else e.port_t)
     return v.cross
 
 
@@ -1291,21 +1315,71 @@ def _inner_port(g: Graph, e: LayoutEdge, side: int) -> bool:
         e.inner_dir[side] == g.direction
 
 
-def _ports(g: Graph) -> None:
+def _lateral(g: Graph, side: int) -> int:
+    # The drawn side of an end in the frame: -1 the low cross side, 1 the
+    # high one, 0 a side across the flow or none.
+    if g.direction == FLOW_DOWN:
+        return -1 if side == SIDE_LEFT else 1 if side == SIDE_RIGHT else 0
+    return -1 if side == SIDE_TOP else 1 if side == SIDE_BOTTOM else 0
+
+
+def _lateral_ports(g: Graph, o: LayoutOptions) -> None:
+    # The ports on the sides along the flow (the drawn sides): spread along
+    # the side, the incoming nearer the layer before, the outgoing nearer the
+    # next one; each runs out across to a lane in the node gap, the lane
+    # nearer the vertex for the end nearer the way it goes; a choice at its
+    # tip.
+    groups: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
+    for k, e in enumerate(g.edges):
+        m = len(e.chain) - 1
+        e.lat = [0, 0]
+        if m < 1:
+            continue
+        for end in (1, 0):
+            w = e.chain[m if end else 0]
+            v = g.vertices[w]
+            lat = _lateral(g, e.side[end])
+            if not lat or v.kind != VERTEX_REAL or v.node is None or \
+                    v.node.rect is None:
+                continue
+            e.lat[end] = lat
+            groups.setdefault((w, lat), []).append((end, k))
+    for (w, lat), ends in sorted(groups.items()):
+        v = g.vertices[w]
+        n = len(ends)
+        fs, cs = _node_frame(g, v)
+        # the incoming first (the ends listed target first), the outgoing
+        ends = sorted(ends, reverse=True)
+        for p, (end, k) in enumerate(ends):
+            e = g.edges[k]
+            lane = p if end else n - 1 - p
+            if v.role == ROLE_CHOICE:
+                e.lat_flow[end] = 0.0
+                e.lat_lane[end] = lat * (cs / 2.0 + o.node_gap / 2.0)
+            else:
+                e.lat_flow[end] = -fs / 2.0 + fs * float(p + 1) / float(n + 1)
+                e.lat_lane[end] = lat * (cs / 2.0 + o.node_gap *
+                                         float(lane + 1) / float(n + 1))
+
+
+def _ports(g: Graph, o: LayoutOptions) -> None:
     # The ports: the ends of a real vertex spread evenly along its side
     # facing the next layer (the outgoing) and the previous one (the
     # incoming), in the order of the other point of their step; a choice
     # ends at its tips and a point at itself, the centre.
     out: List[List[Tuple[float, int]]] = [[] for _ in g.vertices]
     in_: List[List[Tuple[float, int]]] = [[] for _ in g.vertices]
+    _lateral_ports(g, o)
     for k, e in enumerate(g.edges):
         m = len(e.chain) - 1
         e.port_s = e.port_t = 0.0
         e.channel = [0] * m
         if m < 1:
             continue
-        out[e.chain[0]].append((g.vertices[e.chain[1]].cross, k))
-        in_[e.chain[m]].append((g.vertices[e.chain[m - 1]].cross, k))
+        if not e.lat[0]:
+            out[e.chain[0]].append((g.vertices[e.chain[1]].cross, k))
+        if not e.lat[1]:
+            in_[e.chain[m]].append((g.vertices[e.chain[m - 1]].cross, k))
     for v, vx in enumerate(g.vertices):
         if vx.kind != VERTEX_REAL:
             continue
@@ -1557,7 +1631,7 @@ def _assign_coordinates(g: Graph, o: LayoutOptions) -> None:
                 _pack_layer(g, o, layer)
             _priority_passes(g, o)
     if g.orthogonal:
-        _ports(g)
+        _ports(g, o)
         _straighten(g, o)
         _channels(g, o)
     if g.pinned:
@@ -1848,7 +1922,17 @@ def _orthogonal_piece(g: Graph, e: LayoutEdge, band_start: List[float],
                                               band_start[v.layer],
                                               _chain_cross(g, e, i))))
             piece.boxes.append(None)
-        if v.kind == VERTEX_REAL and (i == 0 or i == m):
+        end = 0 if i == 0 else 1
+        if v.kind == VERTEX_REAL and (i == 0 or i == m) and e.lat[end]:
+            # a port on a side along the flow, out across to its lane
+            fs, cs = _node_frame(g, v)
+            f = v.flow + e.lat_flow[end]
+            p = Point(*_to_doc(g.direction, f,
+                               v.cross + e.lat[end] * cs / 2.0))
+            q = Point(*_to_doc(g.direction, f, v.cross + e.lat_lane[end]))
+            piece.bends += [q, p] if end else [p, q]
+            piece.boxes += [None, v.node] if end else [v.node, None]
+        elif v.kind == VERTEX_REAL and (i == 0 or i == m):
             fs, _ = _node_frame(g, v)
             piece.bends.append(Point(*_to_doc(
                 g.direction, v.flow + fs / 2.0 if i == 0
@@ -3181,6 +3265,27 @@ def _collect_sizes(ctx: Context, nodes: List[Node]) -> None:
             _collect_sizes(ctx, n.children)
 
 
+def _drawn_side(n: Optional[Node], p: Optional[Point]) -> int:
+    # The side of its drawn rect a drawn end lies on, -1 none or the centre.
+    if n is None or p is None or n.rect is None or n.rect.width <= 0.0 or \
+            n.rect.height <= 0.0:
+        return -1
+    r = n.rect
+    if abs(p.x - r.x - r.width / 2.0) <= COORD_EPS and \
+            abs(p.y - r.y - r.height / 2.0) <= COORD_EPS:
+        return -1
+    d = [0.0] * 4
+    d[SIDE_LEFT] = abs(p.x - r.x)
+    d[SIDE_RIGHT] = abs(p.x - r.x - r.width)
+    d[SIDE_TOP] = abs(p.y - r.y)
+    d[SIDE_BOTTOM] = abs(p.y - r.y - r.height)
+    best = 0
+    for k in range(1, 4):
+        if d[k] < d[best]:
+            best = k
+    return best
+
+
 def _tree_pass(tree: Tree, reconstruct_sm: bool, opts: LayoutOptions,
                start: int, mode: int) -> Tuple[float, float]:
     from .transform import grow_sm_border
@@ -3198,7 +3303,14 @@ def _tree_pass(tree: Tree, reconstruct_sm: bool, opts: LayoutOptions,
                     e.polyline is not None or e.label_point is not None:
                 ctx.edge_seeds.add(e)
     else:
-        # the full layout and the arrange rebuild the geometry
+        # the full layout and the arrange rebuild the geometry; the arrange
+        # with the orthogonal routes keeps the drawn sides of the ends
+        if ctx.seeded and opts.routing == ROUTING_ORTHOGONAL:
+            for e in tree.edges:
+                s = _drawn_side(e.source, e.source_point)
+                t = _drawn_side(e.target, e.target_point)
+                if e.source is not e.target and (s >= 0 or t >= 0):
+                    ctx.end_sides[e] = (s, t)
         clean_tree_geometry(tree.nodes)
         for e in tree.edges:
             e.source_point = e.target_point = e.label_point = None

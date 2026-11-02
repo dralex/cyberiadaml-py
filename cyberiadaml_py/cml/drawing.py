@@ -36,7 +36,7 @@ from .elements import Transition
 from .enums import (geometryDeclarationFull, geometryFormatCyberiada10,
                     geometryFormatNone, geometryFormatQt,
                     layoutRoutingOrthogonal)
-from .geometry import Point, Rect
+from .geometry import Point, Polyline, Rect
 
 # the loose rects of the base format (7.2.2)
 LOOSE_WIDTH = 300.0
@@ -209,11 +209,19 @@ UPDATE = 'update'
 ARRANGE = 'arrange'
 
 
-def _clean_edges(doc) -> None:
-    """Clean the geometry of the transitions and the comment links."""
+def _clean_edges(doc, keep_ends: bool = False) -> None:
+    """Clean the geometry of the transitions and the comment links.
+
+    With keep_ends the drawn ends of the transitions stay.
+    """
     for sm in doc.get_state_machines():
         for t in sm.get_transitions():
-            t.clean_geometry()
+            if keep_ends and isinstance(t, Transition):
+                t._polyline = Polyline()
+                t._label_point = Point()
+                t._label_rect = Rect()
+            else:
+                t.clean_geometry()
         stack = list(sm.get_children())
         while stack:
             element = stack.pop()
@@ -240,9 +248,10 @@ def layout(doc, reconstruct_sm: bool, mode: str, routing=None) -> None:
         for sm in doc.get_state_machines():
             sm.clean_geometry()
     elif mode == ARRANGE:
-        # every transition is routed anew: its label size estimated
-        _clean_edges(doc)
-    bridge = Bridge(doc, estimate=True)
+        # every transition is routed anew: its label size estimated; the
+        # orthogonal routes keep the drawn ends, the sides they are drawn on
+        _clean_edges(doc, routing == layoutRoutingOrthogonal)
+    bridge = Bridge(doc, estimate=True, labels=mode == ARRANGE)
     try:
         if mode == UPDATE:
             htgeom.update_document_geometry(bridge.document, reconstruct_sm,

@@ -185,11 +185,13 @@ class Bridge:
     """The htgeom document of a document and its elements."""
 
     def __init__(self, doc, estimate: bool = False,
-                 geometry_format=None) -> None:
+                 geometry_format=None, labels: bool = False) -> None:
         fmt = int(doc._geometry_format if geometry_format is None
                   else geometry_format)
         self.document = ht.Document(*FORMATS[fmt])
         self.estimate = estimate
+        # the arrange: every transition label estimated, the drawn ends kept
+        self.labels = labels
         self.nodes: List[Tuple[Element, ht.Node]] = []
         self.regions: List[Tuple[State, ht.Node]] = []
         self.edges: List[Tuple[EdgeOwner, ht.Edge]] = []
@@ -260,9 +262,9 @@ class Bridge:
             edge = ht.Edge(t.get_id(), t.get_source_element_id(),
                            t.get_target_element_id())
             if self.estimate and t.has_action() and \
-                    not t._label_rect.valid and not t._sp.valid and \
-                    not t._tp.valid and not len(t._polyline) and \
-                    not t._label_point.valid:
+                    not t._label_rect.valid and not len(t._polyline) and \
+                    not t._label_point.valid and \
+                    (self.labels or (not t._sp.valid and not t._tp.valid)):
                 # the label size preset from the action text
                 max_chars, lines = actions_metrics([t._action], 0, 0)
                 if lines > 0:
