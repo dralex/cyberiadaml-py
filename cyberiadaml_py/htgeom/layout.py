@@ -139,6 +139,10 @@ class LayoutEdge:
         self.port_s = 0.0
         self.port_t = 0.0
         self.channel: List[int] = []
+        # the source, the target: a composite end whose inner run crosses its
+        # border at a point off its centre, its inner flow running so
+        self.inner: List[Optional[Point]] = [None, None]
+        self.inner_dir = [0, 0]
 
 
 class Graph:
@@ -503,6 +507,35 @@ def _infer_directions(ctx: Context) -> None:
 # the layered layout of one graph container: P2 - P6
 
 
+def _inner_end(ctx: Context, child: Node, end: Optional[Node], edge: Edge,
+               leaving: bool) -> Optional[Tuple[Point, int]]:
+    # The orthogonal routing: where the inner run of an edge crosses the
+    # border of the composite child holding its end, off the child's centre
+    # - the last point of the inner piece of a leaving edge, the first of an
+    # entering one, in the composite's own graph or in its region's.
+    if child is end or child.rect is None or child not in ctx.index:
+        return None
+    ci = ctx.index[child]
+    box = child
+    piece = _find_piece(ctx, ci, edge)
+    for r in child.children:
+        if piece is not None:
+            break
+        if r.type != REGION or r.rect is None or r not in ctx.index:
+            continue
+        piece = _find_piece(ctx, ctx.index[r], edge)
+        if piece is not None:
+            box = r
+            ci = ctx.index[r]
+    if piece is None or not piece.bends:
+        return None
+    b = piece.bends[-1] if leaving else piece.bends[0]
+    assert box.rect is not None
+    at = Point(b.x + box.rect.x - child.rect.x - child.rect.width / 2.0,
+               b.y + box.rect.y - child.rect.y - child.rect.height / 2.0)
+    return at, ctx.containers[ci].direction
+
+
 def _build_graph(ctx: Context, ci: int) -> Graph:
     c = ctx.containers[ci]
     o = ctx.opts
@@ -560,6 +593,15 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
                        s.edge)
         e.seeded_ends = seeded_ends
         e.drawn_ends = drawn_ends
+        if o.routing == ROUTING_ORTHOGONAL:
+            for k, (child, end, leaving) in enumerate((
+                    (s.source_child, s.edge.source, True),
+                    (s.target_child, s.edge.target, False))):
+                if child >= 0:
+                    found = _inner_end(ctx, c.children[child], end, s.edge,
+                                       leaving)
+                    if found is not None:
+                        e.inner[k], e.inner_dir[k] = found
         # a new edge between drawn vertices takes no label layer
         e.has_label = s.has_label and not drawn_ends
         if s.has_label:
@@ -573,6 +615,8 @@ def _build_graph(ctx: Context, ci: int) -> Graph:
 
 def _reverse_edge(e: LayoutEdge) -> None:
     e.source, e.target = e.target, e.source
+    e.inner.reverse()
+    e.inner_dir.reverse()
     e.reversed = not e.reversed
 
 
@@ -876,6 +920,8 @@ def _graph_copy(g: Graph) -> Graph:
         copy_e.__dict__.update(e.__dict__)
         copy_e.chain = list(e.chain)
         copy_e.channel = list(e.channel)
+        copy_e.inner = list(e.inner)
+        copy_e.inner_dir = list(e.inner_dir)
         result.edges.append(copy_e)
     result.layers = [list(layer) for layer in g.layers]
     result.up = [list(x) for x in g.up]
@@ -1237,6 +1283,14 @@ def _chain_cross(g: Graph, e: LayoutEdge, i: int) -> float:
     return v.cross
 
 
+def _inner_port(g: Graph, e: LayoutEdge, side: int) -> bool:
+    # An end inside a composite takes the place of its inner run when that
+    # run crosses the side of the port: the inner flow runs as the outer one
+    # and the edge goes with it.
+    return e.inner[side] is not None and not e.reversed and \
+        e.inner_dir[side] == g.direction
+
+
 def _ports(g: Graph) -> None:
     # The ports: the ends of a real vertex spread evenly along its side
     # facing the next layer (the outgoing) and the previous one (the
@@ -1260,12 +1314,22 @@ def _ports(g: Graph) -> None:
             continue
         for side in (0, 1):
             ends = sorted(in_[v] if side else out[v])
-            for i, (_, k) in enumerate(ends):
-                at = -cs / 2.0 + cs * float(i + 1) / float(len(ends) + 1)
-                if side:
-                    g.edges[k].port_t = at
+            free = sum(1 for _, k in ends
+                       if not _inner_port(g, g.edges[k], side))
+            j = 0
+            for _, k in ends:
+                e = g.edges[k]
+                inner = e.inner[side]
+                if _inner_port(g, e, side) and inner is not None:
+                    at = inner.x if g.direction == FLOW_DOWN else inner.y
+                    at = min(max(at, -cs / 2.0), cs / 2.0)
                 else:
-                    g.edges[k].port_s = at
+                    at = -cs / 2.0 + cs * float(j + 1) / float(free + 1)
+                    j += 1
+                if side:
+                    e.port_t = at
+                else:
+                    e.port_s = at
 
 
 def _dummy_fits(g: Graph, o: LayoutOptions, d: int, cross: float) -> bool:
@@ -2573,8 +2637,9 @@ def _join(ctx: Context, a: Point, ba: Optional[Node], axis_a: int, c: Point,
     aligned_y = abs(a.x - c.x) <= e
     if side_a >= 0:
         axis_a = _side_axis(side_a)
-    if (aligned_x and axis_a in (0, 1) and need_c in (0, 1)) or \
-            (aligned_y and axis_a in (0, 2) and need_c in (0, 2)):
+    if ((aligned_x and axis_a in (0, 1) and need_c in (0, 1)) or
+            (aligned_y and axis_a in (0, 2) and need_c in (0, 2))) and \
+            _run_clear(a, c, boxes):
         q.append(c)
         qb.append(bc)
         return
