@@ -5,6 +5,8 @@
 Added:
 - the choice glyph of libhtreegeom 1.3 in the htgeom port: a choice is a square of
   `LayoutOptions.choice_size` (40), its transitions end at the tips of its rhombus;
+- `DocumentMetainformation.regions_stored` / `set_regions_stored` in cml: the
+  meta parameter `regionGeometry/ stored` of libcyberiadamlpp 1.1;
 - the footer band of a composite of libhtreegeom 1.3 in the htgeom port
   (`Node.footer`) and in cml: the exit block at the bottom, the region between
   the header and the footer;

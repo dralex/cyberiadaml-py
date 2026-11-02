@@ -190,6 +190,20 @@ def test_meta_element():
     assert doc.update_metainfo_from_comment('name/ X') is False
 
 
+def test_regions_stored():
+    """Check the regionGeometry parameter: set, encoded, read, removed."""
+    doc = cml.LocalDocument()
+    doc.decode(_minimal())
+    assert not doc.meta().regions_stored()
+    doc.meta().set_regions_stored(True)
+    copy = cml.LocalDocument()
+    copy.decode(doc.encode())
+    assert copy.meta().regions_stored()
+    assert copy.meta().get_string('regionGeometry') == 'stored'
+    copy.meta().set_regions_stored(False)
+    assert not copy.meta().regions_stored()
+
+
 def _minimal() -> str:
     doc, sm = _machine()
     doc.new_state(sm, 'A')

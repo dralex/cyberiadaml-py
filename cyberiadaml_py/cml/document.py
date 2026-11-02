@@ -90,6 +90,12 @@ FILE_FORMAT_NAMES = {0: 'cyberiada', 1: 'yed', 2: 'yed-ostranna',
                      3: 'yed-berloga', 4: 'lapki'}
 
 
+# the meta parameter of a producer that stores its regions (libcyberiadaml
+# CYBERIADA_META_REGION_GEOMETRY)
+META_REGION_GEOMETRY = 'regionGeometry'
+META_REGION_GEOMETRY_STORED = 'stored'
+
+
 class DocumentMetainformation:
     """The metainformation of a document (the CGML_META parameters)."""
 
@@ -123,6 +129,20 @@ class DocumentMetainformation:
             self.remove_string('geometry')
         else:
             self.set_string('geometry', word)
+
+    def regions_stored(self) -> bool:
+        """Return whether regionGeometry/ stored is set.
+
+        The region rects are the frames of the nested elements as drawn.
+        """
+        return self.get_string(META_REGION_GEOMETRY) == \
+            META_REGION_GEOMETRY_STORED
+
+    def set_regions_stored(self, stored: bool) -> None:
+        if stored:
+            self.set_string(META_REGION_GEOMETRY, META_REGION_GEOMETRY_STORED)
+        else:
+            self.remove_string(META_REGION_GEOMETRY)
 
     def get_geometry(self) -> DocumentGeometryDeclaration:
         value = self.get_string('geometry')
