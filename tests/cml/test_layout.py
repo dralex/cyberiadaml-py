@@ -69,6 +69,29 @@ KNOWN = {
     'standard/core/F-ELSE.graphml':
         (('layout', 'update', 'drawn'),
          'the choice glyph of libhtreegeom 1.3'),
+    'lapki/client-demo-autoborder.graphml':
+        (('layout', 'update', 'drawn'),
+         'the footer band of a composite of libhtreegeom 1.3'),
+    'lapki/client-template-autoborder.graphml':
+        (('layout', 'update'),
+         'the footer band of a composite of libhtreegeom 1.3'),
+    'lapki/client-template-smoker.graphml':
+        (('layout', 'update'),
+         'the footer band of a composite of libhtreegeom 1.3'),
+    'lapki/client-template-stapler.graphml':
+        (('layout', 'update'),
+         'the footer band of a composite of libhtreegeom 1.3'),
+    'lapki/py-demo-autoborder.graphml':
+        (('layout', 'update', 'drawn'),
+         'the footer band of a composite of libhtreegeom 1.3'),
+    # the binding of 1.1 also leaves the hidden component comments out
+    'lapki/compiler-test-shallow-history.graphml':
+        (('layout', 'update', 'drawn'),
+         'the footer band of a composite of libhtreegeom 1.3'),
+    # the binding of 1.1 also leaves the hidden component comments out
+    'lapki/js-demo-local-history.graphml':
+        (('layout', 'update', 'drawn'),
+         'the footer band of a composite of libhtreegeom 1.3'),
 }
 
 

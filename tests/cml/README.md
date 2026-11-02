@@ -18,6 +18,8 @@
   tests 62-65 do, and the examples routed so against `binding-orthogonal.json`, recorded
   with `tools/record_binding_layout.py --orthogonal` by the binding of libcyberiadamlpp 1.1
   (a document whose full layout or drawn comments are not ported yet skipped);
+* `test_bands.py` checks the bands of a composite as the libhtreegeom test 67 does: the
+  header on top, the exit footer at the bottom, the content between them;
 * `test_choice.py` checks the choice of the htgeom port as the libhtreegeom tests 59 and 60 do:
   a small square, the transitions at the tips of its rhombus;
 * `test_links.py` checks the comment link ends of the htgeom port (the foot on a commented

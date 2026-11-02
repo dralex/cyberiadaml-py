@@ -183,6 +183,7 @@ def copy_node(src: Node) -> Node:
     dst.rect = src.rect.copy() if src.rect is not None else None
     dst.role = src.role
     dst.min_rect = src.min_rect.copy() if src.min_rect is not None else None
+    dst.footer = src.footer
     for child in src.children:
         copy = copy_node(child)
         copy.parent = dst

@@ -2134,11 +2134,15 @@ def _size_leaf(ctx: Context, node: Node) -> None:
 
 def _fit(ctx: Context, node: Optional[Node], cw: float,
          ch: float) -> Tuple[float, float, float, float]:
-    """P8: the container rect around the content, the title on top."""
+    """P8: the container rect around the content.
+
+    The header on top, the footer (the exit block) at the bottom.
+    """
     o = ctx.opts
     has_min = node is not None and node.min_rect is not None
+    footer = node.footer if node is not None else 0.0
     min_w = node.min_rect.width if has_min else 0.0    # type: ignore
-    min_h = node.min_rect.height if has_min else 0.0   # type: ignore
+    min_h = (node.min_rect.height if has_min else 0.0) + footer  # type: ignore
     title = node.min_rect.height if has_min else o.padding  # type: ignore
     if cw <= 0.0 and ch <= 0.0:
         width, height = _at_least_seed(
@@ -2148,7 +2152,7 @@ def _fit(ctx: Context, node: Optional[Node], cw: float,
     width = cw + 2 * o.padding
     if min_w > width:
         width = min_w
-    height = title + o.padding + ch + o.padding
+    height = title + o.padding + ch + o.padding + footer
     width, height = _at_least_seed(ctx, node, width, height)
     return (width, height, o.padding + (width - 2 * o.padding - cw) / 2.0,
             title + o.padding)
@@ -2414,11 +2418,12 @@ def _finish_update(ctx: Context, ci: int, node: Optional[Node],
                              ctx.sm_had_rect or node.rect is not None):
         bounds = _content_bounds(ctx, ci)
         if node.rect is not None:
-            # grow-only around the content with the padding
+            # grow-only around the content with the padding, the footer
+            # band below it
             x1 = bounds.x - o.padding
             y1 = bounds.y - o.padding
             x2 = bounds.x + bounds.width + o.padding
-            y2 = bounds.y + bounds.height + o.padding
+            y2 = bounds.y + bounds.height + o.padding + node.footer
             rx2 = node.rect.x + node.rect.width
             ry2 = node.rect.y + node.rect.height
             if bounds.width > 0.0 or bounds.height > 0.0:
@@ -2436,10 +2441,11 @@ def _finish_update(ctx: Context, ci: int, node: Optional[Node],
             # nothing drawn inside: the rect of the full layout
             node.rect = Rect(0.0, 0.0, width, height)
         else:
-            # a new rect around the drawn content keeps the title band
+            # a new rect around the drawn content keeps the header and the
+            # footer bands
             node.rect = Rect(bounds.x - o.padding, bounds.y - fit_iy,
                              bounds.width + 2 * o.padding,
-                             bounds.height + fit_iy + o.padding)
+                             bounds.height + fit_iy + o.padding + node.footer)
             if node.rect.width < width:
                 node.rect.width = width
             if node.rect.height < height:

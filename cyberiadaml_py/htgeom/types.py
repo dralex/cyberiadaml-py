@@ -197,6 +197,8 @@ class Node:
         self.children: List['Node'] = []
         self.role = ROLE_NONE
         self.min_rect: Optional[Rect] = None
+        # a container: the height of its footer band (the exit block)
+        self.footer = 0.0
 
     def add_child(self, child: 'Node') -> None:
         if not self.children and self.type == SIMPLE:

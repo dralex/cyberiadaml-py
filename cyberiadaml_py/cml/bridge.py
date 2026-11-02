@@ -32,7 +32,8 @@ from .. import htgeom
 from ..htgeom import types as ht
 from .elements import (Choice, Comment, CommentSubject, Element, State,
                        StateMachine, SubmachineState, Transition, Vertex)
-from .enums import (TransitionType, actionTransition, commentSubjectElement,
+from .enums import (TransitionType, actionExit, actionTransition,
+                    commentSubjectElement,
                     elementCompositeState,
                     elementDeepHistory, elementEntryPoint, elementExitPoint,
                     elementFinal, elementFormalComment, elementInitial,
@@ -81,9 +82,15 @@ def text_metrics(text: Optional[str]) -> Tuple[int, int]:
     return max(len(line) for line in lines), count
 
 
-def actions_metrics(actions, max_chars: int, lines: int) -> Tuple[int, int]:
-    """Add the action lines as the writer formats them."""
+def actions_metrics(actions, max_chars: int, lines: int,
+                    keep=None) -> Tuple[int, int]:
+    """Add the action lines as the writer formats them.
+
+    keep(type) chooses the actions, all by default.
+    """
     for action in actions:
+        if keep is not None and not keep(action.get_type()):
+            continue
         if action.get_type() == actionTransition:
             trigger = text_metrics(action.get_trigger())[0]
             guard = text_metrics(action.get_guard())[0]
@@ -111,9 +118,13 @@ def block_size(max_chars: int, lines: int) -> Tuple[float, float]:
             lines * LINE_HEIGHT + 2 * TEXT_MARGIN)
 
 
-def _text_size(element: Element) -> Optional[Tuple[float, float]]:
-    """Return the minimum size of a node from its texts."""
+def _text_size(element: Element) -> Optional[Tuple[float, float, float]]:
+    """Return the minimum size of a node from its texts and its footer.
+
+    A composite as the editor draws it: the exit block at the bottom.
+    """
     opts = ht.LayoutOptions()
+    footer = 0.0
     if isinstance(element, Comment):
         max_chars, lines = text_metrics(element.get_body())
     elif isinstance(element, State):
@@ -121,7 +132,17 @@ def _text_size(element: Element) -> Optional[Tuple[float, float]]:
         max_chars, lines = text_metrics(element._name)
         if lines == 0:
             lines = 1
-        if isinstance(element, State) and \
+        if element.get_type() == elementCompositeState:
+            max_chars, lines = actions_metrics(
+                element._actions, max_chars, lines,
+                lambda kind: kind != actionExit)
+            exit_chars, exit_lines = actions_metrics(
+                element._actions, 0, 0, lambda kind: kind == actionExit)
+            if exit_lines > 0:
+                _, footer = block_size(exit_chars, exit_lines)
+                if exit_chars > max_chars:
+                    max_chars = exit_chars
+        elif isinstance(element, State) and \
                 not isinstance(element, SubmachineState):
             max_chars, lines = actions_metrics(element._actions, max_chars,
                                                lines)
@@ -137,7 +158,7 @@ def _text_size(element: Element) -> Optional[Tuple[float, float]]:
             h = opts.node_height
     elif composite and w < opts.node_width:
         w = opts.node_width
-    return w, h
+    return w, h, footer
 
 
 def is_meta(element: Element) -> bool:
@@ -226,6 +247,7 @@ class Bridge:
             size = _text_size(element)
             if size is not None:
                 node.min_rect = ht.Rect(0.0, 0.0, size[0], size[1])
+                node.footer = size[2]
         if isinstance(element, Vertex) and not isinstance(element, Choice):
             node.point = _ht_point(element._point)
         else:
