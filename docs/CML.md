@@ -10,7 +10,7 @@ program that reads, builds, converts or lays out Cyberiada documents runs on eit
         from cyberiadaml_py import cml as CyberiadaML
 
 ```
- consumers: hsmd_reader (hsm-dispatcher-py, hsm-to-python), cybersphere-agents check,
+ consumers: hsmd.reader (hsm-dispatcher-py, hsm-to-python), cybersphere-agents check,
             hsm-console-viewer, hsm_robot_ros_generator, cybersphere-hsm-maker
         |  the binding's names, signatures, enums, exceptions, dump
         v
